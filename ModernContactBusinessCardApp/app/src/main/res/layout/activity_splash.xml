@@ -1,0 +1,32 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <View
+        android:id="@+id/gradient_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/gradient_primary" />
+
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/business_card_icon"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_above="@+id/app_name"
+        android:layout_marginBottom="-15dp"
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/business_card_icon" />
+
+    <TextView
+        android:id="@+id/app_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/business_card_app"
+        android:textSize="40sp"
+        android:textStyle="italic"
+        android:textColor="@color/white"
+        android:textAlignment="center"
+        android:gravity="center"
+        android:layout_centerInParent="true"
+        android:alpha="1" />
+</RelativeLayout>
