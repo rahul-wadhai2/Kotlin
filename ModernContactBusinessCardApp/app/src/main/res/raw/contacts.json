@@ -1,0 +1,254 @@
+{
+  "contacts": [
+    {
+      "id": 1,
+      "name": "Alex Johnson",
+      "company": "TechCorp"
+    },
+    {
+      "id": 2,
+      "name": "Maria Garcia",
+      "company": "DesignHub"
+    },
+    {
+      "id": 3,
+      "name": "James Wilson",
+      "company": "FinanceInc"
+    },
+    {
+      "id": 4,
+      "name": "Sarah Miller",
+      "company": "HealthPlus"
+    },
+    {
+      "id": 5,
+      "name": "David Brown",
+      "company": "EduConnect"
+    },
+    {
+      "id": 6,
+      "name": "Emily Davis",
+      "company": "WebSolutions"
+    },
+    {
+      "id": 7,
+      "name": "Michael Taylor",
+      "company": "CloudTech"
+    },
+    {
+      "id": 8,
+      "name": "Olivia Anderson",
+      "company": "CreativeMinds"
+    },
+    {
+      "id": 9,
+      "name": "Robert Martinez",
+      "company": "DataSystems"
+    },
+    {
+      "id": 10,
+      "name": "Sophia Thomas",
+      "company": "MobileFirst"
+    },
+    {
+      "id": 11,
+      "name": "William Jackson",
+      "company": "AIInnovations"
+    },
+    {
+      "id": 12,
+      "name": "Ava White",
+      "company": "CyberSecure"
+    },
+    {
+      "id": 13,
+      "name": "Joseph Harris",
+      "company": "GreenTech"
+    },
+    {
+      "id": 14,
+      "name": "Mia Clark",
+      "company": "FinTechPro"
+    },
+    {
+      "id": 15,
+      "name": "Charles Lewis",
+      "company": "VRStudios"
+    },
+    {
+      "id": 16,
+      "name": "Charlotte Lee",
+      "company": "BlockChainLabs"
+    },
+    {
+      "id": 17,
+      "name": "Thomas Walker",
+      "company": "QuantumComputing"
+    },
+    {
+      "id": 18,
+      "name": "Amelia Hall",
+      "company": "SmartHomes"
+    },
+    {
+      "id": 19,
+      "name": "Daniel Allen",
+      "company": "FutureGrid"
+    },
+    {
+      "id": 20,
+      "name": "Harper Young",
+      "company": "NanoTech"
+    },
+    {
+      "id": 21,
+      "name": "Matthew Hernandez",
+      "company": "RoboWorks"
+    },
+    {
+      "id": 22,
+      "name": "Evelyn King",
+      "company": "BioGen"
+    },
+    {
+      "id": 23,
+      "name": "Christopher Wright",
+      "company": "SpaceXplore"
+    },
+    {
+      "id": 24,
+      "name": "Abigail Lopez",
+      "company": "DeepLearn"
+    },
+    {
+      "id": 25,
+      "name": "Andrew Scott",
+      "company": "IoTConnect"
+    },
+    {
+      "id": 26,
+      "name": "Elizabeth Hill",
+      "company": "CryptoLabs"
+    },
+    {
+      "id": 27,
+      "name": "Joshua Green",
+      "company": "QuantumLeap"
+    },
+    {
+      "id": 28,
+      "name": "Sofia Adams",
+      "company": "NeuroTech"
+    },
+    {
+      "id": 29,
+      "name": "David Nelson",
+      "company": "AutoDrive"
+    },
+    {
+      "id": 30,
+      "name": "Chloe Baker",
+      "company": "SmartCities"
+    },
+    {
+      "id": 31,
+      "name": "Ryan Carter",
+      "company": "HealthTech"
+    },
+    {
+      "id": 32,
+      "name": "Victoria Rivera",
+      "company": "EduTech"
+    },
+    {
+      "id": 33,
+      "name": "Nicholas Mitchell",
+      "company": "AgriTech"
+    },
+    {
+      "id": 34,
+      "name": "Luna Perez",
+      "company": "CleanEnergy"
+    },
+    {
+      "id": 35,
+      "name": "Ethan Roberts",
+      "company": "3DPrintTech"
+    },
+    {
+      "id": 36,
+      "name": "Zoe Turner",
+      "company": "DroneWorks"
+    },
+    {
+      "id": 37,
+      "name": "Nathan Phillips",
+      "company": "VoiceAI"
+    },
+    {
+      "id": 38,
+      "name": "Lily Campbell",
+      "company": "ARlabs"
+    },
+    {
+      "id": 39,
+      "name": "Tyler Parker",
+      "company": "FinDev"
+    },
+    {
+      "id": 40,
+      "name": "Grace Evans",
+      "company": "BioMed"
+    },
+    {
+      "id": 41,
+      "name": "Jacob Edwards",
+      "company": "CloudNine"
+    },
+    {
+      "id": 42,
+      "name": "Hannah Collins",
+      "company": "NetworkPro"
+    },
+    {
+      "id": 43,
+      "name": "Brandon Stewart",
+      "company": "CyberDefense"
+    },
+    {
+      "id": 44,
+      "name": "Avery Sanchez",
+      "company": "SmartAgro"
+    },
+    {
+      "id": 45,
+      "name": "Samuel Morris",
+      "company": "DigitalBank"
+    },
+    {
+      "id": 46,
+      "name": "Scarlett Rogers",
+      "company": "AIResearch"
+    },
+    {
+      "id": 47,
+      "name": "Kevin Reed",
+      "company": "FutureTravel"
+    },
+    {
+      "id": 48,
+      "name": "Madison Cook",
+      "company": "SpaceTech"
+    },
+    {
+      "id": 49,
+      "name": "Justin Morgan",
+      "company": "SmartRetail"
+    },
+    {
+      "id": 50,
+      "name": "Aria Bell",
+      "company": "Robotica"
+    }
+  ]
+}

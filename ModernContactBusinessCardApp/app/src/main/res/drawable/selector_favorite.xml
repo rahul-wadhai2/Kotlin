@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- State when CheckBox is checked -->
+    <item android:drawable="@drawable/ic_favorite" android:state_checked="true" />
+    <!-- State when CheckBox is unchecked (default) -->
+    <item android:drawable="@drawable/ic_not_favorite" android:state_checked="false" />
+    <!-- Default state (also used for unchecked if no specific state_checked="false" is provided) -->
+    <item android:drawable="@drawable/ic_not_favorite" />
+</selector>
