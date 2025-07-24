@@ -9,15 +9,16 @@ import androidx.core.graphics.toColorInt
 interface AvatarColorProvider {
     val avatarBackgroundColor: Int
 }
-fun createAvatarPlaceholder(name: String): Drawable {
+
+fun createAvatarPlaceholder(name: String, selectedColor: String? = null): Drawable {
     val avatarColors = listOf(
         "#c38df0", "#FF5722", "#dbbc79", "#f06e9c",
         "#3F51B5", "#2196F3", "#00BCD4", "#009688",
         "#4CAF50", "#8BC34A", "#CDDC39", "#FFEB3B"
     )
 
-    // The color is determined here
-    val determinedColor = generateColorFromName(name, avatarColors)
+    // Use the selected color if provided, otherwise generate from name
+    val determinedColor = selectedColor?.toColorInt() ?:generateColorFromName(name, avatarColors)
 
     return object : Drawable(), AvatarColorProvider { // Implement the interface
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -31,7 +32,7 @@ fun createAvatarPlaceholder(name: String): Drawable {
         }
 
         private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE //text is always white on this background
+            color = Color.WHITE // Text is always white on this background
             textSize = 40f
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
@@ -50,8 +51,8 @@ fun createAvatarPlaceholder(name: String): Drawable {
             val gradient = LinearGradient(
                 centerX - radius, centerY,
                 centerX + radius, centerY,
-                Color.parseColor("#6366F1"),
-                Color.parseColor("#FF00FF"),
+                "#6366F1".toColorInt(),
+                "#FF00FF".toColorInt(),
                 Shader.TileMode.CLAMP
             )
             borderPaint.shader = gradient

@@ -10,6 +10,7 @@ import com.jejecomms.businesscardapp.repository.ContactsRepository
 import com.jejecomms.businesscardapp.utils.SharedPreferencesManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * ContactsViewModel is a ViewModel class that provides data to the UI.
@@ -32,12 +33,33 @@ class ContactsViewModel(private val contactsRepository: ContactsRepository) : Ba
     var listContactId = mutableListOf<String>()
 
     /**
+     * MutableLiveData for loading state.
+     */
+    private val isLoading = MutableLiveData<Boolean>()
+
+    /**
+     * LiveData to expose loading state to the UI.
+     */
+    val mIsLoading: LiveData<Boolean> get() = isLoading
+
+    /**
      * Loads contacts from the repository and updates the LiveData.
      */
     fun loadContacts(context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
-            val contacts = contactsRepository.getContacts(context)
-            mContactsListLiveData.postValue(contacts ?: emptyList())
+            isLoading.postValue(true)
+            try {
+                val contacts = contactsRepository.getContacts(context)
+
+                withContext(Dispatchers.Main) {
+                    mContactsListLiveData.value = contacts ?: emptyList()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                isLoading.postValue(false)
+            } finally {
+                isLoading.postValue(false)
+            }
         }
     }
 

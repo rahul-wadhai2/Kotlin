@@ -10,9 +10,10 @@
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:ignore="MissingConstraints">
+        tools:ignore="MissingConstraints"
+        app:elevation="0dp">
         <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
+            android:id="@+id/toolbarActivityMain"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"/>
     </com.google.android.material.appbar.AppBarLayout>
@@ -35,6 +36,8 @@
         app:itemIconSize="24dp"
         app:itemPaddingTop="6dp"
         app:itemPaddingBottom="6dp"
+        app:itemIconTint="@color/bottom_nav_icon_color_selector"
+        app:itemTextColor="@color/bottom_nav_icon_color_selector"
         app:itemBackground="@null"/>
 
     <androidx.fragment.app.FragmentContainerView

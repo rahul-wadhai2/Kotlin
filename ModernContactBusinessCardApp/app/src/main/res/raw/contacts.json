@@ -3,252 +3,603 @@
     {
       "id": 1,
       "name": "Alex Johnson",
-      "company": "TechCorp"
+      "company": "TechCorp",
+      "color": "#c38df0"
     },
     {
       "id": 2,
       "name": "Maria Garcia",
-      "company": "DesignHub"
+      "company": "DesignHub",
+      "color": "#FF5722"
     },
     {
       "id": 3,
       "name": "James Wilson",
-      "company": "FinanceInc"
+      "company": "FinanceInc",
+      "color": "#dbbc79"
     },
     {
       "id": 4,
       "name": "Sarah Miller",
-      "company": "HealthPlus"
+      "company": "HealthPlus",
+      "color": "#f06e9c"
     },
     {
       "id": 5,
       "name": "David Brown",
-      "company": "EduConnect"
+      "company": "EduConnect",
+      "color": "#3F51B5"
     },
     {
       "id": 6,
       "name": "Emily Davis",
-      "company": "WebSolutions"
+      "company": "WebSolutions",
+      "color": "#2196F3"
     },
     {
       "id": 7,
       "name": "Michael Taylor",
-      "company": "CloudTech"
+      "company": "CloudTech",
+      "color": "#00BCD4"
     },
     {
       "id": 8,
       "name": "Olivia Anderson",
-      "company": "CreativeMinds"
+      "company": "CreativeMinds",
+      "color": "#009688"
     },
     {
       "id": 9,
       "name": "Robert Martinez",
-      "company": "DataSystems"
+      "company": "DataSystems",
+      "color": "#4CAF50"
     },
     {
       "id": 10,
       "name": "Sophia Thomas",
-      "company": "MobileFirst"
+      "company": "MobileFirst",
+      "color": "#8BC34A"
     },
     {
       "id": 11,
       "name": "William Jackson",
-      "company": "AIInnovations"
+      "company": "AIInnovations",
+      "color": "#CDDC39"
     },
     {
       "id": 12,
       "name": "Ava White",
-      "company": "CyberSecure"
+      "company": "CyberSecure",
+      "color": "#FFEB3B"
     },
     {
       "id": 13,
       "name": "Joseph Harris",
-      "company": "GreenTech"
+      "company": "GreenTech",
+      "color": "#FF9800"
     },
     {
       "id": 14,
       "name": "Mia Clark",
-      "company": "FinTechPro"
+      "company": "FinTechPro",
+      "color": "#FF5722"
     },
     {
       "id": 15,
       "name": "Charles Lewis",
-      "company": "VRStudios"
+      "company": "VRStudios",
+      "color": "#9C27B0"
     },
     {
       "id": 16,
       "name": "Charlotte Lee",
-      "company": "BlockChainLabs"
+      "company": "BlockChainLabs",
+      "color": "#673AB7"
     },
     {
       "id": 17,
       "name": "Thomas Walker",
-      "company": "QuantumComputing"
+      "company": "QuantumComputing",
+      "color": "#3F51B5"
     },
     {
       "id": 18,
       "name": "Amelia Hall",
-      "company": "SmartHomes"
+      "company": "SmartHomes",
+      "color": "#2196F3"
     },
     {
       "id": 19,
       "name": "Daniel Allen",
-      "company": "FutureGrid"
+      "company": "FutureGrid",
+      "color": "#00BCD4"
     },
     {
       "id": 20,
       "name": "Harper Young",
-      "company": "NanoTech"
+      "company": "NanoTech",
+      "color": "#009688"
     },
     {
       "id": 21,
       "name": "Matthew Hernandez",
-      "company": "RoboWorks"
+      "company": "RoboWorks",
+      "color": "#4CAF50"
     },
     {
       "id": 22,
       "name": "Evelyn King",
-      "company": "BioGen"
+      "company": "BioGen",
+      "color": "#8BC34A"
     },
     {
       "id": 23,
       "name": "Christopher Wright",
-      "company": "SpaceXplore"
+      "company": "SpaceXplore",
+      "color": "#CDDC39"
     },
     {
       "id": 24,
       "name": "Abigail Lopez",
-      "company": "DeepLearn"
+      "company": "DeepLearn",
+      "color": "#FFEB3B"
     },
     {
       "id": 25,
       "name": "Andrew Scott",
-      "company": "IoTConnect"
+      "company": "IoTConnect",
+      "color": "#FF9800"
     },
     {
       "id": 26,
       "name": "Elizabeth Hill",
-      "company": "CryptoLabs"
+      "company": "CryptoLabs",
+      "color": "#FF5722"
     },
     {
       "id": 27,
       "name": "Joshua Green",
-      "company": "QuantumLeap"
+      "company": "QuantumLeap",
+      "color": "#9C27B0"
     },
     {
       "id": 28,
       "name": "Sofia Adams",
-      "company": "NeuroTech"
+      "company": "NeuroTech",
+      "color": "#673AB7"
     },
     {
       "id": 29,
       "name": "David Nelson",
-      "company": "AutoDrive"
+      "company": "AutoDrive",
+      "color": "#3F51B5"
     },
     {
       "id": 30,
       "name": "Chloe Baker",
-      "company": "SmartCities"
+      "company": "SmartCities",
+      "color": "#2196F3"
     },
     {
       "id": 31,
       "name": "Ryan Carter",
-      "company": "HealthTech"
+      "company": "HealthTech",
+      "color": "#00BCD4"
     },
     {
       "id": 32,
       "name": "Victoria Rivera",
-      "company": "EduTech"
+      "company": "EduTech",
+      "color": "#009688"
     },
     {
       "id": 33,
       "name": "Nicholas Mitchell",
-      "company": "AgriTech"
+      "company": "AgriTech",
+      "color": "#4CAF50"
     },
     {
       "id": 34,
       "name": "Luna Perez",
-      "company": "CleanEnergy"
+      "company": "CleanEnergy",
+      "color": "#8BC34A"
     },
     {
       "id": 35,
       "name": "Ethan Roberts",
-      "company": "3DPrintTech"
+      "company": "3DPrintTech",
+      "color": "#CDDC39"
     },
     {
       "id": 36,
       "name": "Zoe Turner",
-      "company": "DroneWorks"
+      "company": "DroneWorks",
+      "color": "#FFEB3B"
     },
     {
       "id": 37,
       "name": "Nathan Phillips",
-      "company": "VoiceAI"
+      "company": "VoiceAI",
+      "color": "#FF9800"
     },
     {
       "id": 38,
       "name": "Lily Campbell",
-      "company": "ARlabs"
+      "company": "ARlabs",
+      "color": "#FF5722"
     },
     {
       "id": 39,
       "name": "Tyler Parker",
-      "company": "FinDev"
+      "company": "FinDev",
+      "color": "#9C27B0"
     },
     {
       "id": 40,
       "name": "Grace Evans",
-      "company": "BioMed"
+      "company": "BioMed",
+      "color": "#673AB7"
     },
     {
       "id": 41,
       "name": "Jacob Edwards",
-      "company": "CloudNine"
+      "company": "CloudNine",
+      "color": "#3F51B5"
     },
     {
       "id": 42,
       "name": "Hannah Collins",
-      "company": "NetworkPro"
+      "company": "NetworkPro",
+      "color": "#2196F3"
     },
     {
       "id": 43,
       "name": "Brandon Stewart",
-      "company": "CyberDefense"
+      "company": "CyberDefense",
+      "color": "#00BCD4"
     },
     {
       "id": 44,
       "name": "Avery Sanchez",
-      "company": "SmartAgro"
+      "company": "SmartAgro",
+      "color": "#009688"
     },
     {
       "id": 45,
       "name": "Samuel Morris",
-      "company": "DigitalBank"
+      "company": "DigitalBank",
+      "color": "#4CAF50"
     },
     {
       "id": 46,
       "name": "Scarlett Rogers",
-      "company": "AIResearch"
+      "company": "AIResearch",
+      "color": "#8BC34A"
     },
     {
       "id": 47,
       "name": "Kevin Reed",
-      "company": "FutureTravel"
+      "company": "FutureTravel",
+      "color": "#CDDC39"
     },
     {
       "id": 48,
       "name": "Madison Cook",
-      "company": "SpaceTech"
+      "company": "SpaceTech",
+      "color": "#FFEB3B"
     },
     {
       "id": 49,
       "name": "Justin Morgan",
-      "company": "SmartRetail"
+      "company": "SmartRetail",
+      "color": "#FF9800"
     },
     {
       "id": 50,
       "name": "Aria Bell",
-      "company": "Robotica"
+      "company": "Robotica",
+      "color": "#FF5722"
+    },
+    {
+      "id": 51,
+      "name": "Ella Foster",
+      "company": "TechSolutions",
+      "color": "#9C27B0"
+    },
+    {
+      "id": 52,
+      "name": "Oliver King",
+      "company": "DesignWorks",
+      "color": "#673AB7"
+    },
+    {
+      "id": 53,
+      "name": "Isabella Scott",
+      "company": "FinancePlus",
+      "color": "#3F51B5"
+    },
+    {
+      "id": 54,
+      "name": "Lucas Wright",
+      "company": "HealthTech",
+      "color": "#2196F3"
+    },
+    {
+      "id": 55,
+      "name": "Mason Lee",
+      "company": "WebInnovations",
+      "color": "#00BCD4"
+    },
+    {
+      "id": 56,
+      "name": "Avery Young",
+      "company": "CloudSolutions",
+      "color": "#009688"
+    },
+    {
+      "id": 57,
+      "name": "Samantha Hall",
+      "company": "CreativeTech",
+      "color": "#4CAF50"
+    },
+    {
+      "id": 58,
+      "name": "Henry Adams",
+      "company": "SmartSystems",
+      "color": "#8BC34A"
+    },
+    {
+      "id": 59,
+      "name": "Grace Lee",
+      "company": "DataAnalytics",
+      "color": "#CDDC39"
+    },
+    {
+      "id": 60,
+      "name": "Liam Brown",
+      "company": "FutureTech",
+      "color": "#FFEB3B"
+    },
+    {
+      "id": 61,
+      "name": "Ella White",
+      "company": "AIInnovations",
+      "color": "#FF9800"
+    },
+    {
+      "id": 62,
+      "name": "James Smith",
+      "company": "DesignHub",
+      "color": "#FF5722"
+    },
+    {
+      "id": 63,
+      "name": "Charlotte Johnson",
+      "company": "FinanceInc",
+      "color": "#9C27B0"
+    },
+    {
+      "id": 64,
+      "name": "Benjamin Davis",
+      "company": "HealthPlus",
+      "color": "#673AB7"
+    },
+    {
+      "id": 65,
+      "name": "Mia Wilson",
+      "company": "EduConnect",
+      "color": "#3F51B5"
+    },
+    {
+      "id": 66,
+      "name": "Lucas Martinez",
+      "company": "WebSolutions",
+      "color": "#2196F3"
+    },
+    {
+      "id": 67,
+      "name": "Amelia Taylor",
+      "company": "CloudTech",
+      "color": "#00BCD4"
+    },
+    {
+      "id": 68,
+      "name": "Ethan Anderson",
+      "company": "CreativeMinds",
+      "color": "#009688"
+    },
+    {
+      "id": 69,
+      "name": "Ava Thomas",
+      "company": "DataSystems",
+      "color": "#4CAF50"
+    },
+    {
+      "id": 70,
+      "name": "William Jackson",
+      "company": "MobileFirst",
+      "color": "#8BC34A"
+    },
+    {
+      "id": 71,
+      "name": "Sophia White",
+      "company": "AIInnovations",
+      "color": "#CDDC39"
+    },
+    {
+      "id": 72,
+      "name": "James Harris",
+      "company": "GreenTech",
+      "color": "#FFEB3B"
+    },
+    {
+      "id": 73,
+      "name": "Olivia Clark",
+      "company": "FinTechPro",
+      "color": "#FF9800"
+    },
+    {
+      "id": 74,
+      "name": "David Lewis",
+      "company": "VRStudios",
+      "color": "#FF5722"
+    },
+    {
+      "id": 75,
+      "name": "Charlotte Lee",
+      "company": "BlockChainLabs",
+      "color": "#9C27B0"
+    },
+    {
+      "id": 76,
+      "name": "Thomas Walker",
+      "company": "QuantumComputing",
+      "color": "#673AB7"
+    },
+    {
+      "id": 77,
+      "name": "Amelia Hall",
+      "company": "SmartHomes",
+      "color": "#3F51B5"
+    },
+    {
+      "id": 78,
+      "name": "Daniel Allen",
+      "company": "FutureGrid",
+      "color": "#2196F3"
+    },
+    {
+      "id": 79,
+      "name": "Harper Young",
+      "company": "NanoTech",
+      "color": "#00BCD4"
+    },
+    {
+      "id": 80,
+      "name": "Matthew Hernandez",
+      "company": "RoboWorks",
+      "color": "#009688"
+    },
+    {
+      "id": 81,
+      "name": "Evelyn King",
+      "company": "BioGen",
+      "color": "#4CAF50"
+    },
+    {
+      "id": 82,
+      "name": "Christopher Wright",
+      "company": "SpaceXplore",
+      "color": "#8BC34A"
+    },
+    {
+      "id": 83,
+      "name": "Abigail Lopez",
+      "company": "DeepLearn",
+      "color": "#CDDC39"
+    },
+    {
+      "id": 84,
+      "name": "Andrew Scott",
+      "company": "IoTConnect",
+      "color": "#FFEB3B"
+    },
+    {
+      "id": 85,
+      "name": "Elizabeth Hill",
+      "company": "CryptoLabs",
+      "color": "#FF9800"
+    },
+    {
+      "id": 86,
+      "name": "Joshua Green",
+      "company": "QuantumLeap",
+      "color": "#FF5722"
+    },
+    {
+      "id": 87,
+      "name": "Sofia Adams",
+      "company": "NeuroTech",
+      "color": "#9C27B0"
+    },
+    {
+      "id": 88,
+      "name": "David Nelson",
+      "company": "AutoDrive",
+      "color": "#673AB7"
+    },
+    {
+      "id": 89,
+      "name": "Chloe Baker",
+      "company": "SmartCities",
+      "color": "#3F51B5"
+    },
+    {
+      "id": 90,
+      "name": "Ryan Carter",
+      "company": "HealthTech",
+      "color": "#2196F3"
+    },
+    {
+      "id": 91,
+      "name": "Victoria Rivera",
+      "company": "EduTech",
+      "color": "#00BCD4"
+    },
+    {
+      "id": 92,
+      "name": "Nicholas Mitchell",
+      "company": "AgriTech",
+      "color": "#009688"
+    },
+    {
+      "id": 93,
+      "name": "Luna Perez",
+      "company": "CleanEnergy",
+      "color": "#4CAF50"
+    },
+    {
+      "id": 94,
+      "name": "Ethan Roberts",
+      "company": "3DPrintTech",
+      "color": "#8BC34A"
+    },
+    {
+      "id": 95,
+      "name": "Zoe Turner",
+      "company": "DroneWorks",
+      "color": "#CDDC39"
+    },
+    {
+      "id": 96,
+      "name": "Nathan Phillips",
+      "company": "VoiceAI",
+      "color": "#FFEB3B"
+    },
+    {
+      "id": 97,
+      "name": "Lily Campbell",
+      "company": "ARlabs",
+      "color": "#FF9800"
+    },
+    {
+      "id": 98,
+      "name": "Tyler Parker",
+      "company": "FinDev",
+      "color": "#FF5722"
+    },
+    {
+      "id": 99,
+      "name": "Grace Evans",
+      "company": "BioMed",
+      "color": "#9C27B0"
+    },
+    {
+      "id": 100,
+      "name": "Jacob Edwards",
+      "company": "CloudNine",
+      "color": "#673AB7"
     }
   ]
 }
+

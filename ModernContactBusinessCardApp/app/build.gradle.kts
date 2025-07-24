@@ -50,6 +50,8 @@ dependencies {
     implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.gson)
     implementation(libs.androidx.palette)
+    implementation(libs.alphabet.fast.scroll.recyclerview)
+    implementation(libs.androidx.swiperefreshlayout)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

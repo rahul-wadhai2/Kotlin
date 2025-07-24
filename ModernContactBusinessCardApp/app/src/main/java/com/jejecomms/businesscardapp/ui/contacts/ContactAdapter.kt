@@ -10,22 +10,31 @@ import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
+import android.widget.SectionIndexer
 import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.textview.MaterialTextView
 import com.jejecomms.businesscardapp.R
 import com.jejecomms.businesscardapp.databinding.ItemContactBinding
 import com.jejecomms.businesscardapp.model.ContactsModel
+import com.jejecomms.businesscardapp.utils.Helpers.Companion.sectionsHelper
 import com.jejecomms.businesscardapp.utils.SharedPreferencesManager
 import createAvatarPlaceholder
+import java.util.Locale
 
-class ContactAdapter(private val context: Context,private val onContactFavoriteClicked: (ContactsModel) -> Unit
-) : ListAdapter<ContactsModel, ContactAdapter.ContactViewHolder>(UserDiffCallback()) {
+class ContactAdapter(
+    private val context: Context,
+    private val onContactFavoriteClicked: (ContactsModel) -> Unit
+) : RecyclerView.Adapter<ContactAdapter.ContactViewHolder>()
+     , SectionIndexer{
 
     private lateinit var listContactId: List<String>
     private var lastAnimatedPosition = -1
+    private val mSections = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#"
+    private var mSectionPositions: ArrayList<Int>? = null
+    private var sectionsTranslator = HashMap<Int, Int>()
+    private var mContactList: MutableList<ContactsModel> = mutableListOf()
+    private var filterContactList: MutableList<ContactsModel> = mutableListOf()
 
     inner class ContactViewHolder(val binding: ItemContactBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(contactsModel: ContactsModel) {
@@ -49,7 +58,8 @@ class ContactAdapter(private val context: Context,private val onContactFavoriteC
 
                 if (contactsModel.name.isNotEmpty()) {
                     val placeHolderDrawable = createAvatarPlaceholder(
-                        contactsModel.name.first().toString().uppercase(),
+                        contactsModel.name.first().toString().uppercase()
+                        ,contactsModel.color
                     )
                     avatarImageView.setImageDrawable(placeHolderDrawable)
                 } else {
@@ -80,34 +90,57 @@ class ContactAdapter(private val context: Context,private val onContactFavoriteC
 
     override fun onBindViewHolder(holder: ContactViewHolder,
                                   @SuppressLint("RecyclerView") position: Int) {
-        val contact = getItem(position)
+        val contact = mContactList[position]
         holder.bind(contact)
         // Apply animation scrolling Up/down.
-       val animation = AnimationUtils.loadAnimation(holder.itemView.context
-                ,R.anim.fade_slide_in_from_right)
-       holder.itemView.startAnimation(animation)
+        if (position > lastAnimatedPosition) {
+            val animation = AnimationUtils.loadAnimation(
+                holder.itemView.context, R.anim.fade_slide_in_from_right
+            )
+            holder.itemView.startAnimation(animation)
+            lastAnimatedPosition = position
+        }
+    }
+
+    override fun getItemCount(): Int {
+        return mContactList.size
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun updateContactsList(contactList: ArrayList<ContactsModel>) {
+        this.mContactList = ArrayList(contactList)
+        this.filterContactList = ArrayList(contactList)
+        notifyDataSetChanged()
     }
 
     /**
-     *Call this when you want to reset the animation state (e.g., on refresh or filter)
+     * Filter the list of contacts based on the given query.
      */
-    fun resetAnimationState() {
-        lastAnimatedPosition = -1
+    @SuppressLint("NotifyDataSetChanged")
+    fun filter(query: String) {
+        mContactList.clear() // Clear the current list
+
+        if (query.isBlank()) {
+            // If the query is empty, show all original contacts
+            mContactList.addAll(filterContactList)
+        } else {
+            // Otherwise, filter based on the query
+            // Normalize query for case-insensitive search
+            val lowerCaseQuery = query.lowercase().trim()
+
+            for (contact in filterContactList) {
+                // Check if the contact name contains the query (case-insensitive)
+                if (contact.name.lowercase().contains(lowerCaseQuery)) {
+                    mContactList.add(contact)
+                }
+            }
+        }
+        notifyDataSetChanged()
     }
 
     override fun onViewDetachedFromWindow(holder: ContactViewHolder) {
         super.onViewDetachedFromWindow(holder)
         holder.itemView.clearAnimation()
-    }
-
-    class UserDiffCallback : DiffUtil.ItemCallback<ContactsModel>() {
-        override fun areItemsTheSame(oldItem: ContactsModel, newItem: ContactsModel): Boolean {
-            return oldItem.id == newItem.id
-        }
-
-        override fun areContentsTheSame(oldItem: ContactsModel, newItem: ContactsModel): Boolean {
-            return oldItem == newItem
-        }
     }
 
     /**
@@ -126,5 +159,36 @@ class ContactAdapter(private val context: Context,private val onContactFavoriteC
             Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
         )
         userName.text = spannableString
+    }
+
+    override fun getSections(): Array<out Any?>? {
+        val sections: MutableList<String> = ArrayList(27)
+        val alphabetFull = ArrayList<String>()
+        mSectionPositions = ArrayList()
+        run {
+            var i = 0
+            val size = mContactList.size
+            while (i < size) {
+                val section = mContactList[i].name.first().uppercase(Locale.getDefault())
+                if (!sections.contains(section)) {
+                    sections.add(section)
+                    mSectionPositions?.add(i)
+                }
+                i++
+            }
+        }
+        for (element in mSections) {
+            alphabetFull.add(element.toString())
+        }
+        sectionsTranslator = sectionsHelper(sections, alphabetFull)
+        return alphabetFull.toTypedArray()
+    }
+
+    override fun getPositionForSection(sectionIndex: Int): Int {
+        return mSectionPositions!![sectionsTranslator[sectionIndex]!!]
+    }
+
+    override fun getSectionForPosition(position: Int): Int {
+       return 0
     }
 }

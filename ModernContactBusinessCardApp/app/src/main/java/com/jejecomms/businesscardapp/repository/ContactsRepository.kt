@@ -5,6 +5,7 @@ import com.google.gson.Gson
 import com.jejecomms.businesscardapp.R
 import com.jejecomms.businesscardapp.model.ContactsListWrapper
 import com.jejecomms.businesscardapp.model.ContactsModel
+import java.util.Locale
 
 /**
  * ContactsRepository is a class that provides methods to read contacts from a JSON file.
@@ -25,7 +26,7 @@ class ContactsRepository {
             val gson = Gson()
             val wrapper = gson.fromJson(jsonString, ContactsListWrapper::class.java)
             val contacts = wrapper?.contacts // Extract the list from the wrapper
-            contacts
+            contacts?.sortedBy { it.name.uppercase(Locale.getDefault()) }
         } catch (e: Exception) {
             e.printStackTrace()
             null

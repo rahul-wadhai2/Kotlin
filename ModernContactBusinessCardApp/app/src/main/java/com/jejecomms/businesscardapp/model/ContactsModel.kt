@@ -6,5 +6,6 @@ package com.jejecomms.businesscardapp.model
 data class ContactsModel(
     val id: String,
     val name: String,
-    val company: String
+    val company: String,
+    val color: String
 )
