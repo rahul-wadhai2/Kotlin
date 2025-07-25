@@ -66,10 +66,10 @@ class ContactsViewModel(private val contactsRepository: ContactsRepository) : Ba
     /**
      * On Contact favorite clicked.
      */
-    fun onContactFavoriteClicked(context: Context, user: ContactsModel) {
+    fun onContactFavoriteClicked(context: Context, contactModel: ContactsModel) {
         viewModelScope.launch(Dispatchers.IO) {
             val currentList = mContactsListLiveData.value?.toMutableList() ?: mutableListOf()
-            val index = currentList.indexOfFirst { it.id == user.id }
+            val index = currentList.indexOfFirst { it.id == contactModel.id }
             if (index != -1) {
                 val contact = currentList[index]
                 val contactId = contact.id
@@ -92,4 +92,17 @@ class ContactsViewModel(private val contactsRepository: ContactsRepository) : Ba
         }
     }
 
+    /**
+     * On Contact call clicked.
+     */
+    fun onContactCallClicked(context: Context, contactModel: ContactsModel) {
+        TODO("Not yet implemented")
+    }
+
+    /**
+     * On Contact delete clicked.
+     */
+    fun onContactDeleteClicked(context: Context, contactModel: ContactsModel) {
+        TODO("Not yet implemented")
+    }
 }

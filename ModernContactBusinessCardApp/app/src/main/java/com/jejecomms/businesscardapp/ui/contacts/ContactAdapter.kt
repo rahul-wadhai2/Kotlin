@@ -10,7 +10,10 @@ import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
+import android.widget.LinearLayout
+import android.widget.RelativeLayout
 import android.widget.SectionIndexer
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.textview.MaterialTextView
@@ -24,7 +27,9 @@ import java.util.Locale
 
 class ContactAdapter(
     private val context: Context,
-    private val onContactFavoriteClicked: (ContactsModel) -> Unit
+    private val onContactFavoriteClicked: (ContactsModel) -> Unit,
+    private val onContactCallClicked: (ContactsModel) -> Unit,
+    private val onContactDeleteClicked: (ContactsModel) -> Unit
 ) : RecyclerView.Adapter<ContactAdapter.ContactViewHolder>()
      , SectionIndexer{
 
@@ -36,7 +41,12 @@ class ContactAdapter(
     private var mContactList: MutableList<ContactsModel> = mutableListOf()
     private var filterContactList: MutableList<ContactsModel> = mutableListOf()
 
-    inner class ContactViewHolder(val binding: ItemContactBinding) : RecyclerView.ViewHolder(binding.root) {
+    inner class ContactViewHolder(val binding: ItemContactBinding) : RecyclerView
+        .ViewHolder(binding.root) {
+        // References to the new views
+        val frontView: RelativeLayout = binding.root.findViewById(R.id.front_view_content)
+        val backView: LinearLayout = binding.root.findViewById(R.id.back_view_actions)
+
         fun bind(contactsModel: ContactsModel) {
             with(binding) {
                userCompany.text = contactsModel.company
@@ -47,9 +57,28 @@ class ContactAdapter(
                 if (listContactId.isNotEmpty()) {
                     if(listContactId.contains(contactsModel.id)) {
                         favoriteStar.isChecked = true
+                        btnFavoriteSwipe.isChecked = true
                     } else {
                         favoriteStar.isChecked = false
+                        btnFavoriteSwipe.isChecked = false
                     }
+                }
+
+                // Set up click listeners for the revealed actions
+                btnCall.setOnClickListener {
+                    // Handle call action
+                    onContactCallClicked(contactsModel)
+                }
+
+                btnDelete.setOnClickListener {
+                    // Handle delete action
+                    Toast.makeText(context, "Delete clicked", Toast.LENGTH_SHORT).show()
+                    onContactDeleteClicked(contactsModel)
+                }
+
+                btnFavoriteSwipe.setOnClickListener {
+                    // Handle favorite action from swipe
+                    onContactFavoriteClicked(contactsModel)
                 }
 
                 favoriteStar.setOnClickListener {

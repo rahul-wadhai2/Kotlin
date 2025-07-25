@@ -5,24 +5,35 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AppCompatActivity
+import android.widget.Toast
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.jejecomms.businesscardapp.R
 import com.jejecomms.businesscardapp.databinding.FragmentContactsBinding
 import com.jejecomms.businesscardapp.model.ContactsModel
 import com.jejecomms.businesscardapp.repository.ContactsRepository
 import com.jejecomms.businesscardapp.ui.base.BaseFragment
+import com.jejecomms.businesscardapp.utils.SwipeActionReveal
+import com.jejecomms.businesscardapp.utils.SwipeActionReveal.SwipeCallbackLeft
+
 
 /**
  * Fragment for displaying a list of contacts.
  */
-class ContactsFragment() : BaseFragment<FragmentContactsBinding, ContactsViewModel>() {
+class ContactsFragment() : BaseFragment<FragmentContactsBinding, ContactsViewModel>()
+    ,SwipeCallbackLeft{
 
+    /**
+     * Adapter for displaying the list of contacts.
+     */
     private lateinit var contactsAdapter: ContactAdapter
-   // private var mContactList: MutableList<ContactsModel> = mutableListOf()
+
+    /**
+     * List of contacts to be displayed.
+     */
     private val mContactList by lazy { ArrayList<ContactsModel>() }
 
     override fun createViewModel(): ContactsViewModel? {
@@ -42,25 +53,8 @@ class ContactsFragment() : BaseFragment<FragmentContactsBinding, ContactsViewMod
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
         setupPullToRefresh()
-
-        // Set up SearchView
-        binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                // Handle search submission
-                query?.let {
-                    contactsAdapter.filter(it)
-                }
-                return true
-            }
-
-            override fun onQueryTextChange(newText: String?): Boolean {
-                // Handle text changes
-                newText?.let {
-                    contactsAdapter.filter(it)
-                }
-                return true
-            }
-        })
+        setupSearchView()
+        setupSwipeActions()
     }
 
     /**
@@ -68,9 +62,18 @@ class ContactsFragment() : BaseFragment<FragmentContactsBinding, ContactsViewMod
      */
     @SuppressLint("NotifyDataSetChanged")
     private fun setupRecyclerView() {
-        contactsAdapter = ContactAdapter(requireContext()) {  clickedUser ->
-            viewModel?.onContactFavoriteClicked(requireContext(), clickedUser)
-        }
+        contactsAdapter = ContactAdapter(
+            requireContext(),
+            { contactModel -> // onContactFavoriteClicked
+                viewModel?.onContactFavoriteClicked(requireContext(), contactModel)
+            },
+            { contactModel -> // onContactCallClicked
+                viewModel?.onContactCallClicked(requireContext(), contactModel)
+            },
+            { contactModel -> // onContactDeleteClicked
+                viewModel?.onContactDeleteClicked(requireContext(), contactModel)
+            }
+        )
 
         binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -80,6 +83,7 @@ class ContactsFragment() : BaseFragment<FragmentContactsBinding, ContactsViewMod
             setIndexBarTextColor(R.color.gray_light)
             setIndexBarTransparentValue(0.3.toFloat())
             setPreviewTextSize(60)
+            setPreviewColor(R.color.secondary)
             setIndexBarStrokeVisibility(false)
             setPreviewVisibility(true)
         }
@@ -111,5 +115,46 @@ class ContactsFragment() : BaseFragment<FragmentContactsBinding, ContactsViewMod
                 viewModel?.loadContacts(requireContext())
             }
         }
+    }
+
+    /**
+     * Set up the Search view for searching contacts.
+     */
+    private fun setupSearchView() {
+        binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                // Handle search submission
+                query?.let {
+                    contactsAdapter.filter(it)
+                }
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                // Handle text changes
+                newText?.let {
+                    contactsAdapter.filter(it)
+                }
+                return true
+            }
+        })
+    }
+
+    /**
+     * Sets up swipe actions for the RecyclerView.
+     */
+    private fun setupSwipeActions() {
+        val itemTouchHelperCallback  = SwipeActionReveal(this)
+        // Attach to the Recycler View Adapter
+        val itemTouchHelper = ItemTouchHelper(itemTouchHelperCallback )
+        itemTouchHelper.attachToRecyclerView(binding.recyclerView)
+    }
+
+    override fun onLeftSwipe(position: Int) {
+        Toast.makeText(
+            requireContext(),
+            "You swiped to the Left on the item " + mContactList.get(position).name,
+            Toast.LENGTH_LONG
+        ).show()
     }
 }
