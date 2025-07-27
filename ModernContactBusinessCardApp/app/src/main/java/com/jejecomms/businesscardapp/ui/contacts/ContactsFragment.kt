@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
@@ -18,7 +17,6 @@ import com.jejecomms.businesscardapp.repository.ContactsRepository
 import com.jejecomms.businesscardapp.ui.base.BaseFragment
 import com.jejecomms.businesscardapp.utils.SwipeActionReveal
 import com.jejecomms.businesscardapp.utils.SwipeActionReveal.SwipeCallbackLeft
-
 
 /**
  * Fragment for displaying a list of contacts.
@@ -74,7 +72,8 @@ class ContactsFragment() : BaseFragment<FragmentContactsBinding, ContactsViewMod
                 viewModel?.onContactDeleteClicked(requireContext(), contactModel)
             }
         )
-
+        // is a vital method for managing touch events in complex view hierarchies.
+        binding.recyclerView.requestDisallowInterceptTouchEvent(true)
         binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(requireContext())
             this.adapter = this@ContactsFragment.contactsAdapter
@@ -151,10 +150,6 @@ class ContactsFragment() : BaseFragment<FragmentContactsBinding, ContactsViewMod
     }
 
     override fun onLeftSwipe(position: Int) {
-        Toast.makeText(
-            requireContext(),
-            "You swiped to the Left on the item " + mContactList.get(position).name,
-            Toast.LENGTH_LONG
-        ).show()
+
     }
 }

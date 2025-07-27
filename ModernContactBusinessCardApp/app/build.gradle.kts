@@ -1,3 +1,5 @@
+@file:Suppress("MISSING_DEPENDENCY_CLASS_IN_LAMBDA_RECEIVER")
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)

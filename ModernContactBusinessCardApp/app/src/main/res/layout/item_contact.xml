@@ -3,7 +3,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_marginVertical="4dp"
     app:cardCornerRadius="8dp"
     app:cardElevation="2dp">
@@ -25,9 +24,15 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="@drawable/ripple_button_background"
-            android:contentDescription="TODO"
+            android:contentDescription="@string/btnDelete"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:padding="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
             android:src="@drawable/ic_delete_24dp"
-            app:tint="@color/error"/>
+            app:tint="@color/error" />
 
         <ImageButton
             android:id="@+id/btn_call"
@@ -35,7 +40,13 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="@drawable/ripple_button_background"
-            android:contentDescription="TODO"
+            android:contentDescription="@string/btnCall"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:padding="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
             android:src="@drawable/ic_phone_24dp"
             app:tint="@color/green"/>
 
@@ -44,6 +55,12 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:padding="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
             android:button="@drawable/selector_favorite"
             android:buttonTint="@color/yellow"/>
 
@@ -115,6 +132,8 @@
                 android:layout_height="56dp"
                 android:layout_alignParentEnd="true"
                 android:layout_gravity="end"
+                android:visibility="gone"
+                android:checked="false"
                 android:button="@drawable/selector_favorite"
                 android:buttonTint="@color/yellow" />
 

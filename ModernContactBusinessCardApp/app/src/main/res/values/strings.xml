@@ -7,4 +7,6 @@
     <string name="business_card_app">Business Card App</string>
     <string name="query_hint">Search contacts…</string>
     <string name="todo">TODO</string>
+    <string name="btnDelete">Swipe delete button</string>
+    <string name="btnCall">Swipe call button</string>
 </resources>

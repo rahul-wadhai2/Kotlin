@@ -8,12 +8,12 @@ import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.SectionIndexer
-import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.textview.MaterialTextView
@@ -47,7 +47,7 @@ class ContactAdapter(
         val frontView: RelativeLayout = binding.root.findViewById(R.id.front_view_content)
         val backView: LinearLayout = binding.root.findViewById(R.id.back_view_actions)
 
-        fun bind(contactsModel: ContactsModel) {
+        fun bind(contactsModel: ContactsModel, holder: ContactViewHolder) {
             with(binding) {
                userCompany.text = contactsModel.company
 
@@ -55,35 +55,39 @@ class ContactAdapter(
                     SharedPreferencesManager.KEY_USER_FAVORITE)
 
                 if (listContactId.isNotEmpty()) {
-                    if(listContactId.contains(contactsModel.id)) {
+                    if (listContactId.contains(contactsModel.id)) {
                         favoriteStar.isChecked = true
+                        favoriteStar.visibility = View.VISIBLE
                         btnFavoriteSwipe.isChecked = true
                     } else {
-                        favoriteStar.isChecked = false
+                        favoriteStar.visibility = View.GONE
                         btnFavoriteSwipe.isChecked = false
                     }
-                }
-
-                // Set up click listeners for the revealed actions
-                btnCall.setOnClickListener {
-                    // Handle call action
-                    onContactCallClicked(contactsModel)
-                }
-
-                btnDelete.setOnClickListener {
-                    // Handle delete action
-                    Toast.makeText(context, "Delete clicked", Toast.LENGTH_SHORT).show()
-                    onContactDeleteClicked(contactsModel)
-                }
-
-                btnFavoriteSwipe.setOnClickListener {
-                    // Handle favorite action from swipe
-                    onContactFavoriteClicked(contactsModel)
+                } else {
+                    favoriteStar.visibility = View.GONE
                 }
 
                 favoriteStar.setOnClickListener {
                     onContactFavoriteClicked(contactsModel)
                 }
+
+                // Set up click listeners for the revealed actions
+                btnCall.setOnClickListener {
+                    // Handle call action
+                    hideShowFrontBackView(holder)
+                }
+
+               btnDelete.setOnClickListener {
+                    // Handle delete action
+                    hideShowFrontBackView(holder)
+                }
+
+                binding.btnFavoriteSwipe.setOnClickListener {
+                    // Handle favorite action from swipe
+                    onContactFavoriteClicked(contactsModel)
+                    hideShowFrontBackView(holder)
+                }
+
 
                 if (contactsModel.name.isNotEmpty()) {
                     val placeHolderDrawable = createAvatarPlaceholder(
@@ -120,7 +124,8 @@ class ContactAdapter(
     override fun onBindViewHolder(holder: ContactViewHolder,
                                   @SuppressLint("RecyclerView") position: Int) {
         val contact = mContactList[position]
-        holder.bind(contact)
+        holder.bind(contact, holder)
+        hideShowFrontBackView(holder)
         // Apply animation scrolling Up/down.
         if (position > lastAnimatedPosition) {
             val animation = AnimationUtils.loadAnimation(
@@ -219,5 +224,13 @@ class ContactAdapter(
 
     override fun getSectionForPosition(position: Int): Int {
        return 0
+    }
+
+    /**
+     * Hide the back view and show the front view.
+     */
+    fun hideShowFrontBackView(holder: ContactViewHolder) {
+        holder.frontView.visibility = View.VISIBLE
+        holder.backView.visibility = View.GONE
     }
 }
