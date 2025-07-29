@@ -1,4 +1,4 @@
-# 📱 RealTimeChat
+# 📱 RealTimeChat App
 
 This is an Android application demonstrating a real-time chat interface.
 
