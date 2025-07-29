@@ -1,4 +1,4 @@
-# RealTimeChat
+# 📱 RealTimeChat
 
 This is an Android application demonstrating a real-time chat interface.
 
@@ -15,39 +15,41 @@ The RealTimeChat app allows users to send and receive messages in a chat-like in
 
 This structure promotes separation of concerns, testability, and maintainability.
 
-├── data
-│   ├── model
-│   │   └── ChatMessage.kt
-│   └── repository
-│       └── ChatRepository.kt
-│
-├── ui
-│   ├── chatscreen
-│   │   ├── ChatScreen.kt
-│   │   ├── ChatViewModel.kt
-│   │   ├── components
-│   │   │   ├── MessageBubble.kt
-│   │   │   └── MessageInputField.kt
-│   │   │   └── DateSeparator.kt
-│   │   │   └── CustomBubbleShape.kt
-│   │   └── ChatScreenState.kt (Sealed Class)
-│
-├── utils
-│   └── DateFormatter.kt
-│
-└── MainActivity.kt
+  ```
+   ├── data
+   │    ├── model
+   │    │   └── ChatMessage.kt
+   │    └── repository
+   │        └── ChatRepository.kt
+   │
+   ├── ui
+   │   ├── chatscreen
+   │   │   ├── ChatScreen.kt
+   │   │   ├── ChatViewModel.kt
+   │   │   ├── components
+   │   │   │   ├── MessageBubble.kt
+   │   │   │   └── MessageInputField.kt
+   │   │   │   └── DateSeparator.kt
+   │   │   │   └── CustomBubbleShape.kt
+   │   │   └── ChatScreenState.kt (Sealed Class)
+   │
+   ├── utils
+   │   └── DateFormatter.kt
+   │
+   └── MainActivity.kt
+```
 
 **MVVM Design Breakdown**
 
-*data Layer:* model/ChatMessage.kt: Defines the data structure for a single chat message.
+**data Layer:** model/ChatMessage.kt: Defines the data structure for a single chat message.
 repository/ChatRepository.kt: An interface defining how to interact with chat data (e.g., getMessages(), sendMessage()). This abstracts the data source.
 
-*ui Layer:* chatscreen/ChatScreen.kt: The Composable function responsible for rendering the entire chat UI. It observes the ViewModel's state.
+**ui Layer:** chatscreen/ChatScreen.kt: The Composable function responsible for rendering the entire chat UI. It observes the ViewModel's state.
 chatscreen/ChatViewModel.kt: Holds and manages the UI-related data. It exposes a StateFlow of ChatScreenState to the UI.
 chatscreen/components: Smaller, reusable Composable functions that make up the ChatScreen (e.g., MessageBubble, MessageInputField).
 chatscreen/ChatScreenState.kt: A sealed class representing the different states of the ChatScreen (Loading, Content, Error).
 
-*util Layer:* DateUtils.kt: Helper for formatting timestamps.
+**util Layer:** DateUtils.kt: Helper for formatting timestamps.
 
 MainActivity.kt: The entry point of the application, responsible for setting up the Compose UI.
 
@@ -58,7 +60,7 @@ This data is likely stored in a list within the ViewModel or a repository and is
 
 *The ViewModel initializes a list of these `ChatMessage` objects upon creation.*
 
-## UI Logic
+## 💡 UI Logic
 
 The user interface is built entirely with Jetpack Compose, a modern declarative UI toolkit for Android.
 
@@ -74,21 +76,7 @@ The user interface is built entirely with Jetpack Compose, a modern declarative 
     *   When the user types in the input field, the `State` in the ViewModel is updated.
     *   When the "Send" button is pressed, the ViewModel processes the new message (e.g., adds it to the list of messages) and the UI automatically recomposes to reflect the change.
 
-## Dependencies
-
-This project utilizes several modern Android Jetpack libraries, including:
-
-*   **Jetpack Compose:** For building the user interface.
-    *   `androidx.compose.ui:ui`
-    *   `androidx.compose.material3:material3`
-    *   `androidx.compose.foundation:foundation`
-    *   `androidx.compose.runtime:runtime`
-    *   `androidx.activity:activity-compose`
-*   **Lifecycle:** For lifecycle-aware components, especially ViewModels.
-    *   `androidx.lifecycle:lifecycle-viewmodel-compose`
-    *   `androidx.lifecycle:lifecycle-runtime-compose`
-
-## How to Build and Run
+## How to Build and Run 🚀
 
 1.  Clone the repository.
 2.  Open the project in Android Studio.
