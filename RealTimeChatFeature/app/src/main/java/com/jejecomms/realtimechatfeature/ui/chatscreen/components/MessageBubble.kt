@@ -10,42 +10,55 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Color.Companion.LightGray
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jejecomms.realtimechatfeature.data.model.ChatMessage
-import com.jejecomms.realtimechatfeature.ui.theme.DarkGreen
+import com.jejecomms.realtimechatfeature.ui.theme.LightGreen
+import com.jejecomms.realtimechatfeature.ui.theme.White
 import com.jejecomms.realtimechatfeature.utils.DateUtils
 
+/**
+ *  Message bubble composable.
+ */
 @Composable
 fun MessageBubble(
     message: ChatMessage,
     isCurrentUser: Boolean
 ) {
-    val bubbleColor = if (isCurrentUser) DarkGreen else LightGray
+    val bubbleColor = if (isCurrentUser) LightGreen else White
     val textColor = if (isCurrentUser) Color.White else Color.Black
     val timestampColor = if (isCurrentUser) Color.White.copy(alpha = 0.7f)
     else Color.Black.copy(alpha = 0.7f)
 
-    val tailWidth = 8.dp
-    val tailHeight = 6.dp
     val cornerRadius = 10.dp
 
-    // Create the custom bubble shape
-    val customBubbleShape = CustomBubbleShape(
-        cornerRadiusDp = cornerRadius,
-        tailWidthDp = tailWidth,
-        tailHeightDp = tailHeight,
-        isLeftTail = !isCurrentUser
-    )
+    val bubbleShape = if (isCurrentUser) {
+        RoundedCornerShape(
+            topStart = cornerRadius,
+            topEnd = cornerRadius,
+            bottomStart = cornerRadius,
+            bottomEnd = 0.dp
+        )
+    } else {
+        RoundedCornerShape(
+            topStart = 0.dp,
+            topEnd = cornerRadius,
+            bottomStart = cornerRadius,
+            bottomEnd = cornerRadius
+        )
+    }
 
     val horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
+
+    val bubbleElevation = 2.dp
 
     if (message.isSystemMessage) {
         Column(
@@ -67,14 +80,15 @@ fun MessageBubble(
             )
         }
     } else {
-        val startPadding = if (isCurrentUser) 8.dp else 8.dp + tailWidth
-        val endPadding = if (isCurrentUser) 8.dp + tailWidth else 8.dp
+        val contentHorizontalPadding = 10.dp
+        val messageBubblePadding = 8.dp
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    start = startPadding,
-                    end = endPadding,
+                    start = messageBubblePadding,
+                    end = messageBubblePadding,
                     top = 1.dp,
                     bottom = 1.dp
                 ),
@@ -82,25 +96,21 @@ fun MessageBubble(
         ) {
             Box(
                 modifier = Modifier
-                    .background(bubbleColor, customBubbleShape)
+                    .shadow(elevation = bubbleElevation, shape = bubbleShape)
+                    .background(bubbleColor, bubbleShape)
                     .wrapContentHeight()
-                    .padding(
-                        start = if (isCurrentUser) 10.dp else 10.dp + tailWidth,
-                        end = if (isCurrentUser) 10.dp + tailWidth else 10.dp,
-                        top = 3.dp,
-                        bottom = 3.dp
-                    )
+                    .padding(horizontal = contentHorizontalPadding, vertical = 2.dp)
                     .widthIn(max = 280.dp)
             ) {
                 Column {
                     Text(
                         text = message.text,
                         color = textColor,
-                        fontSize = 16.sp,
+                        fontSize = 14.sp,
                         modifier = Modifier.padding(end = 8.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(1.dp))
+                    Spacer(modifier = Modifier.height(0.dp))
 
                     Row(
                         modifier = Modifier.align(Alignment.End),
@@ -117,3 +127,5 @@ fun MessageBubble(
         }
     }
 }
+
+
