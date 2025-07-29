@@ -49,7 +49,7 @@ chatscreen/ChatViewModel.kt: Holds and manages the UI-related data. It exposes a
 chatscreen/components: Smaller, reusable Composable functions that make up the ChatScreen (e.g., MessageBubble, MessageInputField).
 chatscreen/ChatScreenState.kt: A sealed class representing the different states of the ChatScreen (Loading, Content, Error).
 
-**util Layer:** DateUtils.kt: Helper for formatting timestamps.
+**utils Layer:** DateUtils.kt: Helper for formatting timestamps.
 
 MainActivity.kt: The entry point of the application, responsible for setting up the Compose UI.
 
