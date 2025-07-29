@@ -55,7 +55,16 @@ MainActivity.kt: The entry point of the application, responsible for setting up 
 
 ## Dummy Data Structure
 
-The application utilizes dummy data to simulate chat messages. The primary data structure for a message might look like this (example in Kotlin):
+The application utilizes dummy data to simulate chat messages. The primary data structure for a message might look like this
+```
+data class ChatMessage(
+    val id: String,
+    val text: String,
+    val senderId: String,
+    val timestamp: Long,
+    val isSystemMessage: Boolean = false
+)
+```
 This data is likely stored in a list within the ViewModel or a repository and is used to populate the chat UI.
 
 *The ViewModel initializes a list of these `ChatMessage` objects upon creation.*
