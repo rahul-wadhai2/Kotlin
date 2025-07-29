@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">RealTimeChat</string>
+    <string name="real_time_chat">Real time chat</string>
+    <string name="message_placeholder">Type a message…</string>
+</resources>
