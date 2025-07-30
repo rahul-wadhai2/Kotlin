@@ -8,9 +8,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,18 +30,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jejecomms.realtimechatfeature.data.model.ChatMessage
+import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.ui.theme.LightGreen
 import com.jejecomms.realtimechatfeature.ui.theme.White
 import com.jejecomms.realtimechatfeature.utils.DateUtils
 
 /**
- *  Message bubble composable.
+ * Composable function to display a single chat message bubble.
+ * It adapts its appearance based on whether the message is from the current user,
+ * is a system message, and its sending status.
+ *
+ * @param message The ChatMessage object to display.
+ * @param isCurrentUser Boolean indicating if the message was sent by the current user.
+ * @param onRetryClick Lambda function to be invoked when the retry icon for a failed message is clicked.
  */
 @Composable
 fun MessageBubble(
     message: ChatMessage,
-    isCurrentUser: Boolean
+    isCurrentUser: Boolean,
+    onRetryClick: (ChatMessage) -> Unit
 ) {
+
     val bubbleColor = if (isCurrentUser) LightGreen else White
     val textColor = if (isCurrentUser) Color.White else Color.Black
     val timestampColor = if (isCurrentUser) Color.White.copy(alpha = 0.7f)
@@ -80,6 +98,7 @@ fun MessageBubble(
             )
         }
     } else {
+        // --- Regular User Message Handling ---
         val contentHorizontalPadding = 10.dp
         val messageBubblePadding = 8.dp
 
@@ -121,11 +140,55 @@ fun MessageBubble(
                             fontSize = 10.sp,
                             color = timestampColor
                         )
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        // --- Message Status Icons ---
+                        when (message.status) {
+                            MessageStatus.SENDING -> {
+                                Icon(
+                                    imageVector = Icons.Filled.Done, // Single tick for sending
+                                    contentDescription = "Sending",
+                                    tint = timestampColor.copy(alpha = 0.8f), // Slightly more opaque
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                            MessageStatus.SENT -> {
+                                Icon(
+                                    imageVector = Icons.Filled.DoneAll, // Double tick for sent
+                                    contentDescription = "Sent",
+                                    tint = timestampColor,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                            MessageStatus.FAILED -> {
+                                // Display error icon and a clickable retry icon
+                                Icon(
+                                    imageVector = Icons.Filled.Error,
+                                    contentDescription = "Failed",
+                                    tint = Color.Red,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                IconButton(
+                                    onClick = { onRetryClick(message)  },
+                                    modifier = Modifier.size(18.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Refresh,
+                                        contentDescription = "Retry",
+                                        tint = Color.Red,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 }
+
 
 

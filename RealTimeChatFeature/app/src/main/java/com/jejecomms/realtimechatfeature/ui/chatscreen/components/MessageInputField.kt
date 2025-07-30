@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.ui.theme.DarkGreen
+import com.jejecomms.realtimechatfeature.utils.Constants.MESSAGE_CHAR_LIMIT
 
 /**
  *  Composable function for the message input field.
@@ -48,8 +49,20 @@ fun MessageInputField(
     onSendMessage: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    /**
+     *  Stores the text entered in the message input field.
+     */
     var messageText by remember { mutableStateOf("") }
+
+    /**
+     *  Controls the visibility of the send button.
+     */
     val showSendButton = messageText.isNotBlank()
+
+    /**
+     * Maximum character limit.
+     */
+    val maxChar = MESSAGE_CHAR_LIMIT
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -66,7 +79,11 @@ fun MessageInputField(
         ) {
             OutlinedTextField(
                 value = messageText,
-                onValueChange = { messageText = it },
+                onValueChange = { newValue ->
+                    if (newValue.length <= maxChar) {
+                        messageText = newValue
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(R.string.message_placeholder)) },
                 singleLine = false,

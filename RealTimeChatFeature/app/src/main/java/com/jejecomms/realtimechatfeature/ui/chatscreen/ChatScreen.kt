@@ -5,7 +5,9 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
@@ -30,14 +32,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.ui.chatscreen.components.DateSeparator
 import com.jejecomms.realtimechatfeature.ui.chatscreen.components.MessageBubble
 import com.jejecomms.realtimechatfeature.ui.chatscreen.components.MessageInputField
+import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME
 import com.jejecomms.realtimechatfeature.utils.DateUtils
 
 /**
@@ -46,11 +49,27 @@ import com.jejecomms.realtimechatfeature.utils.DateUtils
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
-    viewModel: ChatScreenViewModel = viewModel()
+    chatViewModel: ChatScreenViewModel,
+    currentSenderId: String
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    /**
+     *  Collects the UI state from the ViewModel.
+     */
+    val uiState by chatViewModel.uiState.collectAsState()
+
+    /**
+     *  Creates a TopAppBar scroll behavior.
+     */
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+
+    /**
+     *  Creates a LazyListState for managing the list of messages.
+     */
     val listState = rememberLazyListState()
+
+    /**
+     *  Controls the visibility of the message input field.
+     */
     var showInputField by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -81,7 +100,7 @@ fun ChatScreen(
             ) {
                 MessageInputField(
                     onSendMessage = { message ->
-                        viewModel.sendMessage(message)
+                        chatViewModel.sendMessage(message, currentSenderId, SENDER_NAME)
                     },
                     modifier = Modifier
                         .navigationBarsPadding()
@@ -100,6 +119,7 @@ fun ChatScreen(
                 is ChatScreenState.Loading -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
+
                 is ChatScreenState.Content -> {
                     val messages = (uiState as ChatScreenState.Content).messages
                     LaunchedEffect(messages.size) {
@@ -107,29 +127,47 @@ fun ChatScreen(
                             listState.animateScrollToItem(messages.size - 1)
                         }
                     }
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp),
-                        reverseLayout = false
-                    ) {
-                        itemsIndexed(messages) { index, message ->
-                            val previousMessageTimestamp = messages.getOrNull(index - 1)?.timestamp
-                            if (previousMessageTimestamp != null && !DateUtils
-                                .isSameDay(previousMessageTimestamp, message.timestamp)) {
-                                DateSeparator(timestamp = message.timestamp)
-                            } else if (index == 0) {
-                                DateSeparator(timestamp = message.timestamp)
-                            }
-                            MessageBubble(
-                                message = message,
-                                isCurrentUser = message.senderId == viewModel.currentUserId
+                    if (messages.isEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.no_messages_yet),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.Gray
                             )
                         }
+                    } else {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp),
+                            reverseLayout = false
+                        ) {
+                            itemsIndexed(messages) { index, message ->
+                                val previousMessageTimestamp =
+                                    messages.getOrNull(index - 1)?.timestamp
+                                if (previousMessageTimestamp != null && !DateUtils
+                                        .isSameDay(previousMessageTimestamp, message.timestamp)
+                                ) {
+                                    DateSeparator(timestamp = message.timestamp)
+                                } else if (index == 0) {
+                                    DateSeparator(timestamp = message.timestamp)
+                                }
+                                MessageBubble(
+                                    message = message,
+                                    isCurrentUser = message.senderId == currentSenderId,
+                                    onRetryClick = { msgToRetry ->
+                                        chatViewModel.retrySendMessage(msgToRetry)
+                                    }
+                                )
+                            }
+                        }
                     }
-                }
-                is ChatScreenState.Error -> {
+                } else -> {
                     Text(
                         text = (uiState as ChatScreenState.Error).message,
                         color = MaterialTheme.colorScheme.error,

@@ -1,39 +1,57 @@
 package com.jejecomms.realtimechatfeature.data.repository
 
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.snapshots
 import com.jejecomms.realtimechatfeature.data.model.ChatMessage
+import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import java.util.UUID
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.tasks.await
 
-class ChatRepository {
+/**
+ * Repository class responsible for handling data operations related to chat messages.
+ * It abstracts the data source (FirebaseFirestore) from the rest of the application.
+ */
+class ChatRepository(private val db: FirebaseFirestore) {
 
-    private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
-    val messages: Flow<List<ChatMessage>> = _messages.asStateFlow()
+    /**
+     * Sends a chat message to a specific chat room in Firestore.
+     * The message is stored in the "messages" subcollection of the specified chat room.
+     *
+     * @param roomId The ID of the chat room where the message will be sent.
+     * @param message The ChatMessage object to be sent.
+     * @return A Result object indicating success or failure of the operation.
+     * Result.success(Unit) if the message was sent successfully.
+     * Result.failure(Exception) if an error occurred during sending.
+     */
+    suspend fun sendMessage(roomId: String, message: ChatMessage): Result<Unit> {
+        return try {
+            val messageRef = db.collection("chatrooms")
+                .document(roomId)
+                .collection("messages")
+                .document(message.id)
 
-    // Simulate initial messages
-    init {
-        _messages.value = listOf(
-            ChatMessage(UUID.randomUUID().toString(), "Hi there!", "user1", System.currentTimeMillis() - 600000),
-            ChatMessage(UUID.randomUUID().toString(), "Hello!", "user2", System.currentTimeMillis() - 540000),
-            ChatMessage(UUID.randomUUID().toString(), "How are you?", "user1", System.currentTimeMillis() - 480000),
-            ChatMessage(UUID.randomUUID().toString(), "I'm good, thanks! And you?", "user2", System.currentTimeMillis() - 420000),
-            ChatMessage(UUID.randomUUID().toString(), "User1 has joined the chat.", "system", System.currentTimeMillis() - 300000, isSystemMessage = true),
-            ChatMessage(UUID.randomUUID().toString(), "I'm doing great too!", "user1", System.currentTimeMillis() - 240000),
-            ChatMessage(UUID.randomUUID().toString(), "What's up?", "user2", System.currentTimeMillis() - 180000),
-            ChatMessage(UUID.randomUUID().toString(), "User2 has left the chat.", "system", System.currentTimeMillis() - 120000, isSystemMessage = true),
-            ChatMessage(UUID.randomUUID().toString(), "Not much, just chilling.", "user1", System.currentTimeMillis() - 60000),
-            ChatMessage(UUID.randomUUID().toString(), "Ok, cool!", "user2", System.currentTimeMillis())
-        )
+            messageRef.set(message).await()
+            messageRef.update("status", MessageStatus.SENT.name).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
-    fun sendMessage(text: String, senderId: String) {
-        val newMessage = ChatMessage(
-            id = UUID.randomUUID().toString(),
-            text = text,
-            senderId = senderId,
-            timestamp = System.currentTimeMillis()
-        )
-        _messages.value = _messages.value + newMessage
+    /**
+     * Fetching messages.
+     */
+    fun getMessages(roomId: String): Flow<List<ChatMessage>> = flow {
+        val messagesCollection = db.collection("chatrooms")
+            .document(roomId)
+            .collection("messages")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+
+        messagesCollection.snapshots().collect { snapshot ->
+            val messages = snapshot.documents.mapNotNull { it.toObject(ChatMessage::class.java) }
+            emit(messages)
+        }
     }
 }
