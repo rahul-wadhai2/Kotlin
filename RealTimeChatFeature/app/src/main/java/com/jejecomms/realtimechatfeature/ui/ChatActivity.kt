@@ -34,7 +34,7 @@ class ChatActivity : ComponentActivity() {
      * We pass a ChatViewModelFactory to provide the ChatRepository and Application dependencies.
      */
     private val chatViewModel: ChatScreenViewModel by viewModels {
-        ChatViewModelFactory(ChatRepository(firestoreDb), application,isSystemMessage)
+        ChatViewModelFactory(ChatRepository(firestoreDb), application)
     }
 
     /**
@@ -42,18 +42,12 @@ class ChatActivity : ComponentActivity() {
      */
     private lateinit var currentSenderId: String
 
-    /**
-     * Called when the activity is first created.
-     */
-    private var isSystemMessage: Boolean = false
-
     @SuppressLint("CoroutineCreationDuringComposition")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         currentSenderId = SharedPreferencesUtil.getString(KEY_SENDER_ID) ?: run {
             val newId = UuidGenerator.generateUniqueId()
-            isSystemMessage = true
             SharedPreferencesUtil.putString(KEY_SENDER_ID, newId)
             newId
         }

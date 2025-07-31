@@ -23,4 +23,9 @@ object Constants {
      * Sender ID store in SharedPreferences.
      */
     const val KEY_SENDER_ID = "current_sender_id"
+
+    /**
+     * User joined timestamp store in SharedPreferences.
+     */
+    const val USER_JOINED_TIMESTAMP = "user_joined_timestamp"
 }

@@ -6,7 +6,9 @@
     <string name="empty_message_error">Message cannot be empty.</string>
     <string name="failed_to_send_message_error">Failed to send message %1$s: %2$s</string>
     <string name="unknown_error_sending_message">An unknown error occurred while sending the message.</string>
-    <string name="no_messages_yet">No messages yet. Start the conversation!</string>
     <string name="message_load_failed_error">Error loading messages: %1$s</string>
     <string name="no_internet_error">No internet connection. Message %1$s failed to send.</string>
+    <string name="des_sending">Description sending status icon</string>
+    <string name="des_sent">Description sent status icon</string>
+    <string name="des_retry">Description retry status icon</string>
 </resources>

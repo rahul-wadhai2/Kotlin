@@ -5,9 +5,7 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
@@ -32,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -127,34 +124,31 @@ fun ChatScreen(
                             listState.animateScrollToItem(messages.size - 1)
                         }
                     }
-                    if (messages.isEmpty()) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = stringResource(R.string.no_messages_yet),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color.Gray
-                            )
-                        }
-                    } else {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier
-                                .fillMaxSize(),
-                            contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp),
-                            reverseLayout = false
-                        ) {
-                            itemsIndexed(messages) { index, message ->
-                                val previousMessageTimestamp =
-                                    messages.getOrNull(index - 1)?.timestamp
-                                if (previousMessageTimestamp != null && !DateUtils
-                                        .isSameDay(previousMessageTimestamp, message.timestamp)
-                                ) {
-                                    DateSeparator(timestamp = message.timestamp)
-                                } else if (index == 0) {
+                    if (!messages.isEmpty())
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp),
+                        reverseLayout = false
+                    ) {
+                        itemsIndexed(messages) { index, message ->
+                            val previousMessageTimestamp =
+                                messages.getOrNull(index - 1)?.timestamp
+
+                            // Determine if a date separator is needed
+                            val showDateSeparator = previousMessageTimestamp != null &&
+                                    !DateUtils.isSameDay(previousMessageTimestamp, message.timestamp) ||
+                                    index == 0
+
+                            // Check if this is a "user joined" system message
+                            val isJoinSystemMessage = message.isSystemMessage
+                                message.senderId == "system" &&
+                                        message.text.contains("has joined the chat")
+                            if (isJoinSystemMessage) {
+                                DateSeparator(timestamp = message.timestamp, eventText = message.text)
+                            } else {
+                                if (showDateSeparator) {
                                     DateSeparator(timestamp = message.timestamp)
                                 }
                                 MessageBubble(

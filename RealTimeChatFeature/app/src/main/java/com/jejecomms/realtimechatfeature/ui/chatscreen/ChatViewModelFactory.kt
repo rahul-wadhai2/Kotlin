@@ -10,14 +10,13 @@ import com.jejecomms.realtimechatfeature.data.repository.ChatRepository
  */
 class ChatViewModelFactory(
     private val repository: ChatRepository,
-    private val application: Application,
-    private val isSystemMessage: Boolean
+    private val application: Application
 ) :
     ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ChatScreenViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return ChatScreenViewModel(repository, application, isSystemMessage) as T
+            return ChatScreenViewModel(repository, application) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

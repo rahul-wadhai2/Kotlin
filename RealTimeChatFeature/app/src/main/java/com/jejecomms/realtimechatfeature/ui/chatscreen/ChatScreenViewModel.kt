@@ -8,7 +8,9 @@ import com.jejecomms.realtimechatfeature.data.model.ChatMessage
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.data.repository.ChatRepository
 import com.jejecomms.realtimechatfeature.utils.Constants.GENERAL_CHAT_ROOM_ID
+import com.jejecomms.realtimechatfeature.utils.Constants.USER_JOINED_TIMESTAMP
 import com.jejecomms.realtimechatfeature.utils.NetworkMonitor
+import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +26,6 @@ import kotlinx.coroutines.launch
 class ChatScreenViewModel(
     private val chatRepository: ChatRepository,
     private val application: Application,
-    private val isSystemMessage: Boolean,
 ) : AndroidViewModel(application) {
 
     /**
@@ -48,11 +49,14 @@ class ChatScreenViewModel(
      */
     val uiState: StateFlow<ChatScreenState> = _uiState
 
+    // Flag to ensure join message is sent only once
+    private var hasSentJoinMessage = false
+
     /**
      * This runs when the ViewModel is first created.
      */
     init {
-        GENERAL_CHAT_ROOM_ID.collectMessages()
+        onUserEnteredChatRoom("Rahul")
     }
 
     /**
@@ -65,14 +69,10 @@ class ChatScreenViewModel(
         viewModelScope.launch {
             chatRepository.getMessages(this@collectMessages)
                 .catch { e ->
-                    _uiState.value = ChatScreenState
-                        .Error(
-                            application.getString(
-                                R.string.message_load_failed_error, e.message
-                            )
-                        )
+                    _uiState.value = ChatScreenState.Content(_messages.value)
                 }.collect { fetchedMessages ->
-                    _uiState.value = ChatScreenState.Content(fetchedMessages)
+                    _messages.value = fetchedMessages
+                    _uiState.value = ChatScreenState.Content(_messages.value)
                 }
         }
     }
@@ -105,7 +105,7 @@ class ChatScreenViewModel(
             senderName = senderName,
             text = text,
             timestamp = System.currentTimeMillis(),
-            isSystemMessage = isSystemMessage,
+            isSystemMessage = false,
             status = MessageStatus.SENDING
         )
 
@@ -114,26 +114,10 @@ class ChatScreenViewModel(
         _messages.update { currentMessages ->
             currentMessages + newMessage
         }
-
         //Launch a coroutine in the ViewModel's scope to send the message asynchronously.
         viewModelScope.launch {
 
             if (!NetworkMonitor.isOnline()) {
-                _messages.update { currentMessages ->
-                    currentMessages.map { msg ->
-                        msg.copy(status = MessageStatus.FAILED)
-                    }
-                }
-                return@launch
-            }
-
-            val result = chatRepository.sendMessage(GENERAL_CHAT_ROOM_ID, newMessage)
-
-            // Handle the result of the message send operation.
-            if (result.isFailure) {
-                val exception = result.exceptionOrNull()
-                val errorMessage = exception?.message ?: application
-                    .getString(R.string.unknown_error_sending_message)
                 _messages.update { currentMessages ->
                     currentMessages.map { msg ->
                         if (msg.id == newMessage.id) {
@@ -143,13 +127,26 @@ class ChatScreenViewModel(
                         }
                     }
                 }
-                val fullErrorMessage = application.getString(
-                    R.string.failed_to_send_message_error,
-                    newMessage.id,
-                    errorMessage
-                )
-                _uiState.value = ChatScreenState.Error(fullErrorMessage)
+                _uiState.value = ChatScreenState.Content(_messages.value)
+                return@launch
+            }
+
+            val result = chatRepository.sendMessage(GENERAL_CHAT_ROOM_ID, newMessage)
+
+            // Handle the result of the message send operation.
+            if (result.isFailure) {
+                _messages.update { currentMessages ->
+                    currentMessages.map { msg ->
+                        if (msg.id == newMessage.id) {
+                            msg.copy(status = MessageStatus.FAILED)
+                        } else {
+                            msg
+                        }
+                    }
+                }
+                _uiState.value = ChatScreenState.Content(_messages.value)
             } else {
+                // If sending succeeded, update the specific message's status to SENT
                 _messages.update { currentMessages ->
                     currentMessages.map { msg ->
                         if (msg.id == newMessage.id) {
@@ -177,32 +174,103 @@ class ChatScreenViewModel(
         }
 
         // Update the message status to SENDING locally before retrying
-        _messages.update { currentMessages ->
-            currentMessages.map { msg ->
-                if (msg.id == message.id) {
-                    msg.copy(status = MessageStatus.SENDING)
+        _messages.update { listOfMessages ->
+            listOfMessages.map { retryChatMessage ->
+                if (retryChatMessage.id == message.id) {
+                    retryChatMessage.copy(
+                        status = MessageStatus.SENDING
+                    )
                 } else {
-                    msg
+                    retryChatMessage
                 }
             }
         }
 
         // Re-launch the sending process for the message
         viewModelScope.launch {
-            val result = chatRepository.sendMessage(GENERAL_CHAT_ROOM_ID, message)
-            _messages.update { currentMessages ->
-                currentMessages.map { msg ->
-                    if (msg.id == message.id) {
-                        if (result.isSuccess) {
-                            msg.copy(status = MessageStatus.SENT)
+            if (!NetworkMonitor.isOnline()) {
+                _messages.update { listOfMessages ->
+                    listOfMessages.map { retryChatMessage ->
+                        if (retryChatMessage.id == message.id) {
+                            retryChatMessage.copy(status = MessageStatus.FAILED)
                         } else {
-                            msg.copy(status = MessageStatus.FAILED)
+                            retryChatMessage
                         }
-                    } else {
-                        msg
+                    }
+                }
+                // Update UI state to reflect the failed message
+                _uiState.value = ChatScreenState.Content(_messages.value)
+                return@launch
+            }
+
+            val result = chatRepository.sendMessage(GENERAL_CHAT_ROOM_ID, message)
+            if (result.isFailure) {
+                _messages.update { listOfMessages ->
+                    listOfMessages.map { retryChatMessage ->
+                        if (retryChatMessage.id == message.id) {
+                            retryChatMessage.copy(status = MessageStatus.FAILED)
+                        } else {
+                            retryChatMessage
+                        }
+                    }
+                }
+                // Update UI state to reflect the failed message
+                _uiState.value = ChatScreenState.Content(_messages.value)
+            } else {
+                // If sending succeeded, update the specific message's status to SENT
+                _messages.update { currentMessages ->
+                    currentMessages.map { retryChatMessage ->
+                        if (retryChatMessage.id == message.id) {
+                            retryChatMessage.copy(status = MessageStatus.SENT)
+                        } else {
+                            retryChatMessage
+                        }
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Sends a system message indicating a user has joined the chat.
+     * This message is marked as `isSystemMessage = true`.
+     *
+     * @param userName The name of the user who joined.
+     */
+    fun sendJoinMessage(userName: String) {
+       val timeStamp = SharedPreferencesUtil.getString(USER_JOINED_TIMESTAMP) ?: run {
+            val timeStamp = System.currentTimeMillis().toString()
+            SharedPreferencesUtil.putString(USER_JOINED_TIMESTAMP, timeStamp)
+            timeStamp
+        }
+        val joinMessage = ChatMessage(
+            id = UuidGenerator.generateUniqueId(),
+            clientGeneratedId = UuidGenerator.generateUniqueId(),
+            senderId = "system",
+            senderName = userName,
+            text = "$userName has joined the chat",
+            timestamp = timeStamp.toLong(),
+            isSystemMessage = true,
+            status = MessageStatus.SENT
+        )
+
+        _messages.update { currentMessages ->
+            if (!currentMessages.contains(joinMessage)) {
+                currentMessages + joinMessage
+            } else{
+                currentMessages
+            }
+        }
+        _uiState.value = ChatScreenState.Content(_messages.value)
+    }
+
+    fun onUserEnteredChatRoom(userName: String) {
+        if (!hasSentJoinMessage) {
+            sendJoinMessage(userName) // This should add to _messages and set isSystemMessage = true
+            hasSentJoinMessage = true
+            GENERAL_CHAT_ROOM_ID.collectMessages()
+        } else {
+            GENERAL_CHAT_ROOM_ID.collectMessages()
         }
     }
 }
