@@ -36,8 +36,13 @@ This structure promotes separation of concerns, testability, and maintainability
    │   └── ChatActivity.kt
    │   
    └── utils
-       └── DateFormatter.kt
-   
+   │   ├── Constants.kt
+   │   ├── DateUtils.kt
+   │   ├── NetworkMonitor.kt
+   │   ├── SharedPreferencesUtil.kt
+   │   └── UuidGenerator.kt
+   └── ChatApplication.kt
+    
 ```
 
 **MVVM Design Breakdown**
