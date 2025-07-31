@@ -41,6 +41,7 @@ This structure promotes separation of concerns, testability, and maintainability
    │   ├── NetworkMonitor.kt
    │   ├── SharedPreferencesUtil.kt
    │   └── UuidGenerator.kt
+   │ 
    └── ChatApplication.kt
     
 ```
