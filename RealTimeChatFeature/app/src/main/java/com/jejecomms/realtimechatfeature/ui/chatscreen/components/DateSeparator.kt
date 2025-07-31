@@ -20,8 +20,9 @@ import com.jejecomms.realtimechatfeature.utils.DateUtils
  *  This separator is used to group messages by date.
  */
 @Composable
-fun DateSeparator(timestamp: Long, eventText: String? = null) {
+fun DateSeparator(timestamp: Long, textMessage: String? = null) {
     val formattedDate = DateUtils.formatDate(timestamp)
+    val formattedTime = DateUtils.formatTime(timestamp)
 
     Row(
         modifier = Modifier
@@ -41,8 +42,8 @@ fun DateSeparator(timestamp: Long, eventText: String? = null) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = if (eventText != null) {
-                    "$formattedDate - $eventText"
+                text = if (textMessage != null) {
+                    "$formattedDate - $formattedTime $textMessage"
                 } else {
                     formattedDate // Display only date
                 },

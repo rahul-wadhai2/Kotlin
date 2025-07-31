@@ -47,7 +47,7 @@ import com.jejecomms.realtimechatfeature.utils.DateUtils
 @Composable
 fun ChatScreen(
     chatViewModel: ChatScreenViewModel,
-    currentSenderId: String
+    currentSenderId: String,
 ) {
     /**
      *  Collects the UI state from the ViewModel.
@@ -124,30 +124,41 @@ fun ChatScreen(
                             listState.animateScrollToItem(messages.size - 1)
                         }
                     }
-                    if (!messages.isEmpty())
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp),
-                        reverseLayout = false
-                    ) {
-                        itemsIndexed(messages) { index, message ->
-                            val previousMessageTimestamp =
-                                messages.getOrNull(index - 1)?.timestamp
+                    if (messages.isNotEmpty()) {
+                        // Find the first "user joined" message to display it once at the top.
+                        val firstJoinMessage = messages.firstOrNull {
+                            it.isSystemMessage && it.senderId == "system" && it.text.contains("has joined the chat")
+                        }
 
-                            // Determine if a date separator is needed
-                            val showDateSeparator = previousMessageTimestamp != null &&
-                                    !DateUtils.isSameDay(previousMessageTimestamp, message.timestamp) ||
-                                    index == 0
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp),
+                            reverseLayout = false
+                        ) {
+                            // Display the "user joined" message as a header if found
+                            if (firstJoinMessage != null) {
+                                item {
+                                    DateSeparator(
+                                        timestamp = firstJoinMessage.timestamp,
+                                        textMessage = firstJoinMessage.text
+                                    )
+                                }
+                            }
 
-                            // Check if this is a "user joined" system message
-                            val isJoinSystemMessage = message.isSystemMessage
-                                message.senderId == "system" &&
-                                        message.text.contains("has joined the chat")
-                            if (isJoinSystemMessage) {
-                                DateSeparator(timestamp = message.timestamp, eventText = message.text)
-                            } else {
+                            // Filter out the system messages from the main message list
+                            val chatMessages = messages.filter { !it.isSystemMessage }
+
+                            itemsIndexed(chatMessages) { index, message ->
+                                val previousMessageTimestamp =
+                                    chatMessages.getOrNull(index - 1)?.timestamp
+                                val showDateSeparator = previousMessageTimestamp != null &&
+                                        !DateUtils.isSameDay(
+                                            previousMessageTimestamp,
+                                            message.timestamp
+                                        ) ||
+                                        index == 0
+
                                 if (showDateSeparator) {
                                     DateSeparator(timestamp = message.timestamp)
                                 }
@@ -161,7 +172,10 @@ fun ChatScreen(
                             }
                         }
                     }
-                } else -> {
+
+                }
+
+                else -> {
                     Text(
                         text = (uiState as ChatScreenState.Error).message,
                         color = MaterialTheme.colorScheme.error,

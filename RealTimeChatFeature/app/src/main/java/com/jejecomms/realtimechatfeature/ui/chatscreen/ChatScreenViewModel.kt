@@ -49,14 +49,11 @@ class ChatScreenViewModel(
      */
     val uiState: StateFlow<ChatScreenState> = _uiState
 
-    // Flag to ensure join message is sent only once
-    private var hasSentJoinMessage = false
-
     /**
      * This runs when the ViewModel is first created.
      */
     init {
-        onUserEnteredChatRoom("Rahul")
+        GENERAL_CHAT_ROOM_ID.collectMessages()
     }
 
     /**
@@ -73,6 +70,7 @@ class ChatScreenViewModel(
                 }.collect { fetchedMessages ->
                     _messages.value = fetchedMessages
                     _uiState.value = ChatScreenState.Content(_messages.value)
+                    sendJoinMessage("Rahul")
                 }
         }
     }
@@ -262,15 +260,5 @@ class ChatScreenViewModel(
             }
         }
         _uiState.value = ChatScreenState.Content(_messages.value)
-    }
-
-    fun onUserEnteredChatRoom(userName: String) {
-        if (!hasSentJoinMessage) {
-            sendJoinMessage(userName) // This should add to _messages and set isSystemMessage = true
-            hasSentJoinMessage = true
-            GENERAL_CHAT_ROOM_ID.collectMessages()
-        } else {
-            GENERAL_CHAT_ROOM_ID.collectMessages()
-        }
     }
 }
