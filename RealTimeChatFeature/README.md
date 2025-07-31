@@ -32,11 +32,12 @@ This structure promotes separation of concerns, testability, and maintainability
    │   │   │   └── DateSeparator.kt
    │   │   │   └── CustomBubbleShape.kt
    │   │   └── ChatScreenState.kt (Sealed Class)
-   │
-   ├── utils
-   │   └── DateFormatter.kt
-   │
-   └── MainActivity.kt
+   │   │
+   │   └── ChatActivity.kt
+   │   
+   └── utils
+       └── DateFormatter.kt
+   
 ```
 
 **MVVM Design Breakdown**
