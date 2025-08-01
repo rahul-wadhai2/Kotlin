@@ -152,7 +152,6 @@ chatrooms/
 │   └── messages/
 │       ├── message_id_1/
 │       │   ├── id: "message_id_1"
-│       │   ├── clientGeneratedId: "client_id_1"
 │       │   ├── senderId: "user_abc"
 │       │   ├── senderName: "Alice"
 │       │   ├── text: "Hello everyone!"
@@ -161,7 +160,6 @@ chatrooms/
 │       │   └── isSystemMessage: false
 │       ├── message_id_2/
 │       │   ├── id: "message_id_2"
-│       │   ├── clientGeneratedId: "client_id_2"
 │       │   ├── senderId: "user_xyz"
 │       │   ├── senderName: "Bob"
 │       │   ├── text: "Hi Alice!"
@@ -179,7 +177,6 @@ The ChatMessage Kotlin data class directly maps to the JSON structure of documen
 ```
 data class ChatMessage(
     val id: String = UUID.randomUUID().toString(), // Unique ID for the message (Firestore Document ID)
-    val clientGeneratedId: String = UUID.randomUUID().toString(), // Client-generated ID for retry safety (not used as Firestore ID)
     val senderId: String = "",       // ID of the user who sent the message (e.g., Firebase Auth UID)
     val senderName: String = "",     // Display name of the sender
     val text: String = "",           // The content of the message
@@ -225,4 +222,25 @@ The application employs a robust error handling strategy to provide clear feedba
  * ChatScreenState.Success: Messages have been loaded, and the screen is ready.
  * ChatScreenState.Error(messageResId, args): Used for all error notifications (input validation, network issues, send/retry failures, load failures). The UI resolves the messageResId and args to display a user-friendly message (e.g., a Retry Icon).
 
+## Listener Lifecycle
+The listener is managed by the ```ChatScreenViewModel``` and ```ChatRepository```.
+* **Initialization:** When the ```ChatScreenViewModel``` is created, it calls ```startFirestoreMessageListener``` from the ```ChatRepository```.
+* **Real-time Updates:** This listener, a coroutine launched in the applicationScope, continuously listens for real-time updates from a specific Firestore chat room.
+* **Data Flow:** Any new or updated messages from Firestore are collected as a snapshot and then inserted or updated into the local Room database.
+* **UI Observation:** The UI observes a Flow from the local Room database, which serves as the single source of truth. This ensures that the UI always displays the most up-to-date messages, whether from the local cache or a recent Firestore update.
 
+## Deduplication
+Deduplication is handled implicitly through the use of a local database and Firestore's real-time updates.
+* **Firebase Listener:** The ```startFirestoreMessageListener``` function in the ```ChatRepository``` retrieves all messages from Firestore and passes them to the ```messageDao```.
+* ```OnConflictStrategy.REPLACE:``` The insertMessages method in the ```MessageDao``` uses ```OnConflictStrategy.REPLACE```. This means that if a message with the same primary key (id) already exists in the Room database, the new version from Firestore will replace it, effectively handling updates and preventing duplicate messages from being stored.
+
+## Scroll Logic
+The scroll behavior is implemented in the ```ChatScreen.kt``` file using LazyColumn and LaunchedEffect.
+* ```LazyListState:``` ```LazyListState``` is created with ```rememberLazyListState()``` to manage the scroll position of the ```LazyColumn```.
+* **Auto-scrolling to the bottom:** ```LaunchedEffect``` observes changes to the size of the ```messages``` list. Whenever a new message is added (causing the list size to change), ```animateScrollToItem``` is called to automatically scroll the list to the last item, ensuring the user is always at the bottom of the conversation.
+
+## Firebase Listener
+The Firebase listener is a core component of this application's real-time functionality.
+* **Implementation:** The ```startFirestoreMessageListener``` function in ```ChatRepository.kt``` sets up the listener on a Firestore collection.
+* **Purpose:** The listener's purpose is to synchronize the Firestore data with the local Room database. It queries the ```messages``` subcollection within a specific ```chatroom document```, ordered by the ```timestamp```.
+* **Data Handling:** The listener's snapshots are collected as a ```Flow```, and the remote messages are then mapped to ```ChatMessageEntity``` objects before being inserted into the local database. This ensures the local data is always a reflection of the remote data.
