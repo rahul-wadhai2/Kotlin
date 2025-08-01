@@ -1,5 +1,8 @@
-package com.jejecomms.realtimechatfeature.data.model
+package com.jejecomms.realtimechatfeature.data.local
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 
 /**
@@ -14,7 +17,9 @@ import com.jejecomms.realtimechatfeature.utils.UuidGenerator
  *  @param status Current status of the message.
  *  @param isSystemMessage Flag indicating if the message is a system message.
  */
-data class ChatMessage(
+@Entity(tableName = "messages")
+data class ChatMessageEntity(
+    @PrimaryKey
     val id: String = UuidGenerator.generateUniqueId(),
     val clientGeneratedId: String = UuidGenerator.generateUniqueId(),
     val senderId: String = "",

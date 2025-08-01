@@ -41,7 +41,7 @@ import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME
 import com.jejecomms.realtimechatfeature.utils.DateUtils
 
 /**
- *  Composable function for the chat screen.
+ * Composable function for the chat screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,22 +50,22 @@ fun ChatScreen(
     currentSenderId: String,
 ) {
     /**
-     *  Collects the UI state from the ViewModel.
+     * Collects the UI state from the ViewModel.
      */
     val uiState by chatViewModel.uiState.collectAsState()
 
     /**
-     *  Creates a TopAppBar scroll behavior.
+     * Creates a TopAppBar scroll behavior.
      */
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     /**
-     *  Creates a LazyListState for managing the list of messages.
+     * Creates a LazyListState for managing the list of messages.
      */
     val listState = rememberLazyListState()
 
     /**
-     *  Controls the visibility of the message input field.
+     * Controls the visibility of the message input field.
      */
     var showInputField by remember { mutableStateOf(false) }
 
@@ -125,50 +125,44 @@ fun ChatScreen(
                         }
                     }
                     if (messages.isNotEmpty()) {
-                        // Find the first "user joined" message to display it once at the top.
-                        val firstJoinMessage = messages.firstOrNull {
-                            it.isSystemMessage && it.senderId == "system" && it.text.contains("has joined the chat")
-                        }
-
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp),
                             reverseLayout = false
                         ) {
-                            // Display the "user joined" message as a header if found
-                            if (firstJoinMessage != null) {
-                                item {
-                                    DateSeparator(
-                                        timestamp = firstJoinMessage.timestamp,
-                                        textMessage = firstJoinMessage.text
-                                    )
-                                }
-                            }
-
-                            // Filter out the system messages from the main message list
-                            val chatMessages = messages.filter { !it.isSystemMessage }
-
-                            itemsIndexed(chatMessages) { index, message ->
+                            itemsIndexed(messages) { index, message ->
+                                // Determine if a date separator should be shown
                                 val previousMessageTimestamp =
-                                    chatMessages.getOrNull(index - 1)?.timestamp
-                                val showDateSeparator = previousMessageTimestamp != null &&
+                                    messages.getOrNull(index - 1)?.timestamp
+                                val showDateSeparator = previousMessageTimestamp == null ||
                                         !DateUtils.isSameDay(
                                             previousMessageTimestamp,
                                             message.timestamp
-                                        ) ||
-                                        index == 0
-
+                                        )
+                                val showJoinMessage =  message.senderId == "system"
+                                        && message.text.contains("has joined the chat")
+                               println("Join: "+message.senderId+" "+message.text+" "+showJoinMessage)
                                 if (showDateSeparator) {
                                     DateSeparator(timestamp = message.timestamp)
                                 }
-                                MessageBubble(
-                                    message = message,
-                                    isCurrentUser = message.senderId == currentSenderId,
-                                    onRetryClick = { msgToRetry ->
-                                        chatViewModel.retrySendMessage(msgToRetry)
-                                    }
-                                )
+
+                                if (showJoinMessage) {
+                                    // Display system messages using the DateSeparator composable
+                                    DateSeparator(
+                                        timestamp = message.timestamp,
+                                        textMessage = message.text
+                                    )
+                                } else {
+                                    // Display regular chat messages
+                                    MessageBubble(
+                                        message = message,
+                                        isCurrentUser = message.senderId == currentSenderId,
+                                        onRetryClick = { msgToRetry ->
+                                            chatViewModel.retrySendMessage(msgToRetry)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }

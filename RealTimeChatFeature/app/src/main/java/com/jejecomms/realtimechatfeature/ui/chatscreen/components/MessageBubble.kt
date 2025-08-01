@@ -14,12 +14,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,11 +29,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jejecomms.realtimechatfeature.R
-import com.jejecomms.realtimechatfeature.data.model.ChatMessage
+import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.ui.theme.LightGreen
 import com.jejecomms.realtimechatfeature.ui.theme.White
-import com.jejecomms.realtimechatfeature.utils.DateUtils.formatDate
 import com.jejecomms.realtimechatfeature.utils.DateUtils.formatTime
 
 /**
@@ -48,9 +46,9 @@ import com.jejecomms.realtimechatfeature.utils.DateUtils.formatTime
  */
 @Composable
 fun MessageBubble(
-    message: ChatMessage,
+    message: ChatMessageEntity,
     isCurrentUser: Boolean,
-    onRetryClick: (ChatMessage) -> Unit
+    onRetryClick: (ChatMessageEntity) -> Unit
 ) {
     /**
      * This colour is used to set the background color of the message bubble.
@@ -103,8 +101,14 @@ fun MessageBubble(
      */
     val bubbleElevation = 2.dp
 
-    // --- Regular User Message Handling ---
+    /**
+     * This value is used to set the horizontal padding of the message bubble.
+     */
     val contentHorizontalPadding = 10.dp
+
+    /**
+     * This value is used to set the vertical padding of the message bubble.
+     */
     val messageBubblePadding = 8.dp
 
     Column(
@@ -149,39 +153,39 @@ fun MessageBubble(
                     Spacer(modifier = Modifier.width(4.dp))
 
                     // --- Message Status Icons ---
-                    when (message.status) {
-                        MessageStatus.SENDING -> {
-                            if (isCurrentUser) {
-                                Icon(
-                                    imageVector = Icons.Filled.Done, // Single tick for sending
-                                    contentDescription = stringResource(R.string.des_sending),
-                                    tint = timestampColor.copy(alpha = 0.8f),
-                                    modifier = Modifier.size(14.dp)
+                    // This block will decide which icon to show based on the message status.
+                    if (isCurrentUser) {
+                        when (message.status) {
+                            MessageStatus.SENDING -> {
+                                // Show a circular progress bar when the message is being sent
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(14.dp),
+                                    color = timestampColor,
+                                    strokeWidth = 2.dp
                                 )
                             }
-                        }
-                        MessageStatus.SENT -> {
-                            if (isCurrentUser) {
+                            MessageStatus.SENT -> {
+                                // Show a double tick for a successfully sent message
                                 Icon(
-                                    imageVector = Icons.Filled.DoneAll, // Double tick for sent
+                                    imageVector = Icons.Filled.DoneAll,
                                     contentDescription = stringResource(R.string.des_sent),
                                     tint = timestampColor,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
-                        }
-                        MessageStatus.FAILED -> {
-                            // Display a clickable retry icon
-                            IconButton(
-                                onClick = { onRetryClick(message)  },
-                                modifier = Modifier.size(18.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Refresh,
-                                    contentDescription = stringResource(R.string.des_retry),
-                                    tint = Color.Red,
-                                    modifier = Modifier.size(16.dp)
-                                )
+                            MessageStatus.FAILED -> {
+                                // Display a clickable retry icon for failed messages
+                                IconButton(
+                                    onClick = { onRetryClick(message)  },
+                                    modifier = Modifier.size(18.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Refresh,
+                                        contentDescription = stringResource(R.string.des_retry),
+                                        tint = Color.Red,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -190,6 +194,3 @@ fun MessageBubble(
         }
     }
 }
-
-
-

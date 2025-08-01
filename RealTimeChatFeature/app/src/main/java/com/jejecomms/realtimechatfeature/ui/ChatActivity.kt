@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.google.firebase.firestore.FirebaseFirestore
+import com.jejecomms.realtimechatfeature.ChatApplication
 import com.jejecomms.realtimechatfeature.data.repository.ChatRepository
 import com.jejecomms.realtimechatfeature.ui.chatscreen.ChatScreen
 import com.jejecomms.realtimechatfeature.ui.chatscreen.ChatScreenViewModel
@@ -34,7 +35,10 @@ class ChatActivity : ComponentActivity() {
      * We pass a ChatViewModelFactory to provide the ChatRepository and Application dependencies.
      */
     private val chatViewModel: ChatScreenViewModel by viewModels {
-        ChatViewModelFactory(ChatRepository(firestoreDb), application)
+        val application = application as ChatApplication
+        val applicationScope = application.applicationScope
+        val messageDao = application.messageDao
+        ChatViewModelFactory(ChatRepository(firestoreDb, messageDao, applicationScope), application)
     }
 
     /**
@@ -52,7 +56,10 @@ class ChatActivity : ComponentActivity() {
             newId
         }
         setContent {
-            RealTimeChatFeatureTheme {
+            RealTimeChatFeatureTheme(
+                dynamicColor = false
+            ) {
+
                 Surface(
                     modifier = Modifier.Companion.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

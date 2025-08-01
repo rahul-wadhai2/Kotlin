@@ -1,6 +1,6 @@
 package com.jejecomms.realtimechatfeature.ui.chatscreen
 
-import com.jejecomms.realtimechatfeature.data.model.ChatMessage
+import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
 
 
 /**
@@ -16,7 +16,7 @@ sealed class ChatScreenState {
     /**
      * State when the chat screen is ready and displaying messages.
      */
-    data class Content(val messages: List<ChatMessage>) : ChatScreenState()
+    data class Content(val messages: List<ChatMessageEntity>) : ChatScreenState()
 
     /**
      * State when an error occurs.
