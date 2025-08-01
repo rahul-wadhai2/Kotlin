@@ -43,12 +43,12 @@ interface MessageDao {
     suspend fun getMessagesByStatus(status: String): List<ChatMessageEntity>
 
     /**
-     * Retrieves a single message from the database using its client-generated ID.
-     * This is crucial for checking if a message already exists before updating it.
-     *
-     * @param clientGeneratedId The unique ID generated on the client side.
-     * @return The ChatMessageEntity if found, or null otherwise.
+     * Inserts a new message into the database of group members.
      */
-    @Query("SELECT * FROM messages WHERE clientGeneratedId = :clientGeneratedId")
-    suspend fun getMessageByClientGeneratedId(clientGeneratedId: String): ChatMessageEntity?
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertGroupMember(message: GroupMembersEntity)
+
+    // The function you requested
+    @Update
+    suspend fun updateGroupMember(groupMember: GroupMembersEntity)
 }

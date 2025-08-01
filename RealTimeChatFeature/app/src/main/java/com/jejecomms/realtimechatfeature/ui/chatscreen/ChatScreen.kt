@@ -37,6 +37,7 @@ import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.ui.chatscreen.components.DateSeparator
 import com.jejecomms.realtimechatfeature.ui.chatscreen.components.MessageBubble
 import com.jejecomms.realtimechatfeature.ui.chatscreen.components.MessageInputField
+import com.jejecomms.realtimechatfeature.ui.chatscreen.components.SystemMessage
 import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME
 import com.jejecomms.realtimechatfeature.utils.DateUtils
 
@@ -118,6 +119,7 @@ fun ChatScreen(
                 }
 
                 is ChatScreenState.Content -> {
+                    // This list now contains both chat messages and system messages
                     val messages = (uiState as ChatScreenState.Content).messages
                     LaunchedEffect(messages.size) {
                         if (messages.isNotEmpty()) {
@@ -128,33 +130,24 @@ fun ChatScreen(
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp),
-                            reverseLayout = false
+                            contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp)
                         ) {
                             itemsIndexed(messages) { index, message ->
                                 // Determine if a date separator should be shown
-                                val previousMessageTimestamp =
-                                    messages.getOrNull(index - 1)?.timestamp
+                                val previousMessageTimestamp = messages.getOrNull(index - 1)?.timestamp
                                 val showDateSeparator = previousMessageTimestamp == null ||
                                         !DateUtils.isSameDay(
                                             previousMessageTimestamp,
                                             message.timestamp
                                         )
-                                val showJoinMessage =  message.senderId == "system"
-                                        && message.text.contains("has joined the chat")
-                               println("Join: "+message.senderId+" "+message.text+" "+showJoinMessage)
+
                                 if (showDateSeparator) {
                                     DateSeparator(timestamp = message.timestamp)
                                 }
 
-                                if (showJoinMessage) {
-                                    // Display system messages using the DateSeparator composable
-                                    DateSeparator(
-                                        timestamp = message.timestamp,
-                                        textMessage = message.text
-                                    )
+                                if (message.isSystemMessage) {
+                                    SystemMessage(message = message)
                                 } else {
-                                    // Display regular chat messages
                                     MessageBubble(
                                         message = message,
                                         isCurrentUser = message.senderId == currentSenderId,
@@ -169,7 +162,7 @@ fun ChatScreen(
 
                 }
 
-                else -> {
+                is ChatScreenState.Error -> {
                     Text(
                         text = (uiState as ChatScreenState.Error).message,
                         color = MaterialTheme.colorScheme.error,

@@ -1,16 +1,17 @@
 package com.jejecomms.realtimechatfeature.ui.chatscreen.components
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jejecomms.realtimechatfeature.utils.DateUtils
@@ -20,43 +21,33 @@ import com.jejecomms.realtimechatfeature.utils.DateUtils
  *  This separator is used to group messages by date.
  */
 @Composable
-fun DateSeparator(timestamp: Long, textMessage: String? = null) {
+fun DateSeparator(timestamp: Long) {
     val formattedDate = DateUtils.formatDate(timestamp)
-    val formattedTime = DateUtils.formatTime(timestamp)
 
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        contentAlignment = Alignment.Center
     ) {
-        // Left Divider
-        HorizontalDivider(
-            modifier = Modifier.weight(1f),
-            color = Color.Gray.copy(alpha = 0.3f),
-            thickness = 1.dp
-        )
-
-        Box(
-            modifier = Modifier.padding(horizontal = 8.dp),
-            contentAlignment = Alignment.Center
+        Surface(
+            color = Color.White,
+            shadowElevation = 4.dp,
+            shape = RoundedCornerShape(
+                topStart = 0.dp,
+                topEnd = 16.dp,
+                bottomStart = 16.dp,
+                bottomEnd = 0.dp
+            )
         ) {
             Text(
-                text = if (textMessage != null) {
-                    "$formattedDate - $formattedTime $textMessage"
-                } else {
-                    formattedDate // Display only date
-                },
-                color = Color.Gray,
+                text = formattedDate,
+                color = Color.DarkGray,
                 fontSize = 12.sp,
-                style = MaterialTheme.typography.labelSmall
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
             )
         }
-        // Right Divider
-        HorizontalDivider(
-            modifier = Modifier.weight(1f),
-            color = Color.Gray.copy(alpha = 0.3f),
-            thickness = 1.dp
-        )
     }
 }

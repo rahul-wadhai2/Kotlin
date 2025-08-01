@@ -25,7 +25,12 @@ object Constants {
     const val KEY_SENDER_ID = "current_sender_id"
 
     /**
-     * User joined timestamp store in SharedPreferences.
+     * User joined the chat room message.
      */
-    const val USER_JOINED_TIMESTAMP = "user_joined_timestamp"
+    const val USER_JOINED_THE_CHAT_ROOM = "has joined the chat room"
+
+    /**
+     * You have joined the chat room message.
+     */
+    const val YOU_HAVE_JOINED_THE_CHAT_ROOM = "You have joined the chat room"
 }

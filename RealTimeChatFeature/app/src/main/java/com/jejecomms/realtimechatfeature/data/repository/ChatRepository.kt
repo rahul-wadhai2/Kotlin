@@ -4,11 +4,13 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.snapshots
 import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
+import com.jejecomms.realtimechatfeature.data.local.GroupMembersEntity
 import com.jejecomms.realtimechatfeature.data.local.MessageDao
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.utils.NetworkMonitor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -122,23 +124,71 @@ class ChatRepository(
      * @param roomId The ID of the chat room.
      * @param userId The ID of the user who joined.
      */
-    suspend fun hasJoinMessageBeenSent(roomId: String, userId: String): Boolean {
+    suspend fun hasJoinTheGroup(roomId: String, userId: String): Boolean {
         return try {
             val messagesCollection = firebasFireStore.collection("chatrooms")
                 .document(roomId)
-                .collection("messages")
-            println("True: join: userId: "+ userId)
+                .collection("group_members")
+            println("True: join: userId: " + userId)
             val querySnapshot = messagesCollection
-                .whereEqualTo("systemMessage", true)
+                .whereEqualTo("groupMember", true)
                 .whereEqualTo("senderId", userId)
                 .limit(1) // Only need to find one to know it exists
                 .get()
                 .await()
-            println("True: join: "+ !querySnapshot.isEmpty)
+            println("True: join: " + !querySnapshot.isEmpty)
             !querySnapshot.isEmpty
         } catch (e: Exception) {
             e.printStackTrace()
             false
+        }
+    }
+
+    /**
+     * Adds a user to the group and updates both the Firestore and local database.
+     *
+     * @param roomId The ID of the chat room.
+     * @param member The GroupMembersEntity representing the user.
+     */
+    suspend fun joinedGroup(roomId: String, member: GroupMembersEntity) {
+        applicationScope.launch {
+            try {
+                // Update local database immediately to show pending status
+                messageDao.insertGroupMember(member.copy(isGroupMember = false))
+
+                // Send the member data to Firestore
+                val memberRef = firebasFireStore.collection("chatrooms")
+                    .document(roomId)
+                    .collection("group_members")
+                    .document(member.id)
+
+                memberRef.set(member.copy(isGroupMember = true)).await()
+
+                // If successful, update local database to reflect the success
+                messageDao.updateGroupMember(member.copy(isGroupMember = true))
+            } catch (e: Exception) {
+                // If the network call fails, update the local database with the failed status
+                messageDao.updateGroupMember(member.copy(isGroupMember = false))
+                e.printStackTrace()
+            }
+        }
+    }
+
+    /**
+     * Retrieves all joined group members from Firestore in real-time.
+     * @param roomId The ID of the chat room.
+     * @return A Flow of a list of GroupMembersEntity.
+     */
+    fun getGroupMembers(roomId: String): Flow<List<GroupMembersEntity>> = flow {
+        val membersCollection = firebasFireStore.collection("chatrooms")
+            .document(roomId)
+            .collection("group_members")
+
+        membersCollection.snapshots().collect { snapshot ->
+            val members = snapshot.documents.mapNotNull {
+                it.toObject(GroupMembersEntity::class.java)
+            }
+            emit(members)
         }
     }
 }

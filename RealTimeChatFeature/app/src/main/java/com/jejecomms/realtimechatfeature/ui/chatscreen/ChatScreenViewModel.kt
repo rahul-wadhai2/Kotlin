@@ -4,24 +4,26 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
-import com.jejecomms.realtimechatfeature.data.model.MessageStatus
+import com.jejecomms.realtimechatfeature.data.local.GroupMembersEntity
 import com.jejecomms.realtimechatfeature.data.repository.ChatRepository
 import com.jejecomms.realtimechatfeature.utils.Constants.GENERAL_CHAT_ROOM_ID
 import com.jejecomms.realtimechatfeature.utils.Constants.KEY_SENDER_ID
 import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME
+import com.jejecomms.realtimechatfeature.utils.Constants.USER_JOINED_THE_CHAT_ROOM
+import com.jejecomms.realtimechatfeature.utils.Constants.YOU_HAVE_JOINED_THE_CHAT_ROOM
 import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
-import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 /**
- *  ViewModel for the chat screen. It interacts with the ChatRepository to send messages
+ * ViewModel for the chat screen. It interacts with the ChatRepository to send messages
  * and manages the UI state related to messages.
  */
 class ChatScreenViewModel(
     private val chatRepository: ChatRepository,
-    private val application: Application,
+    application: Application,
 ) : AndroidViewModel(application) {
 
     /**
@@ -38,26 +40,48 @@ class ChatScreenViewModel(
      * This runs when the ViewModel is first created.
      */
     init {
-        // Start collecting messages from the local Room database
+        // Start the Firestore listener to keep the local database in sync.
+        GENERAL_CHAT_ROOM_ID.let { chatRepository.startFirestoreMessageListener(it) }
+
+        // This combines the flow of chat messages and group members into a single list.
+        val currentSenderId = SharedPreferencesUtil.getString(KEY_SENDER_ID)
+
         viewModelScope.launch {
-            chatRepository.getLocalMessages().collect { messages ->
-                _uiState.value = ChatScreenState.Content(messages)
+            combine(
+                chatRepository.getLocalMessages(),
+                chatRepository.getGroupMembers(GENERAL_CHAT_ROOM_ID)
+            ) { chatMessages, groupMembers ->
+                // Map GroupMembersEntity to ChatMessageEntity for a unified list
+                val joinMessages = groupMembers.map { member ->
+                    val joinMessageText = if (member.senderId == currentSenderId) {
+                        YOU_HAVE_JOINED_THE_CHAT_ROOM
+                    } else {
+                        "${member.senderName} $USER_JOINED_THE_CHAT_ROOM"
+                    }
+                    ChatMessageEntity(
+                        id = member.id,
+                        senderId = member.senderId,
+                        senderName = member.senderName,
+                        text = joinMessageText,
+                        timestamp = member.timestamp,
+                        isSystemMessage = true
+                    )
+                }
+                // Combine and sort all messages by timestamp
+                (chatMessages + joinMessages).sortedBy { it.timestamp }
+            }.collect { combinedMessages ->
+                _uiState.value = ChatScreenState.Content(combinedMessages)
             }
         }
 
-        // Start the Firestore listener to keep the local database in sync
-        GENERAL_CHAT_ROOM_ID.let { chatRepository.startFirestoreMessageListener(it) }
-
-//        // It is crucial to check Firestore to ensure this message is only sent once per user.
-//        val currentSenderId = SharedPreferencesUtil.getString(KEY_SENDER_ID)
-//        viewModelScope.launch {
-//            currentSenderId?.let {
-//                println("True: "+chatRepository.hasJoinMessageBeenSent(GENERAL_CHAT_ROOM_ID, it))
-//                if (!chatRepository.hasJoinMessageBeenSent(GENERAL_CHAT_ROOM_ID, it)) {
-//                    currentSenderId.let { sendJoinMessage(it, SENDER_NAME) }
-//                }
-//            }
-//        }
+        // It is crucial to check Firestore to ensure this message is only sent once per user.
+        viewModelScope.launch {
+            currentSenderId?.let {
+                if (!chatRepository.hasJoinTheGroup(GENERAL_CHAT_ROOM_ID, it)) {
+                    addMemberToGroup(it, SENDER_NAME)
+                }
+            }
+        }
     }
 
     /**
@@ -70,20 +94,11 @@ class ChatScreenViewModel(
      */
     fun sendMessage(text: String, senderId: String, senderName: String) {
         if (text.isNotBlank()) {
-            // Generate unique IDs for the message
-            val messageId = UuidGenerator.generateUniqueId()
-            val clientGeneratedId = UuidGenerator.generateUniqueId()
-
-            // Create a new ChatMessage with SENDING status
             val newMessage = ChatMessageEntity(
-                id = messageId,
-                clientGeneratedId = clientGeneratedId,
                 senderId = senderId,
                 senderName = senderName,
                 text = text,
-                timestamp = System.currentTimeMillis(),
-                isSystemMessage = false,
-                status = MessageStatus.SENDING
+                timestamp = System.currentTimeMillis()
             )
 
             viewModelScope.launch {
@@ -96,7 +111,6 @@ class ChatScreenViewModel(
      * Retries sending a failed message.
      * This function updates the message status back to SENDING and attempts to resend it.
      *
-     * @param roomId The ID of the chat room.
      * @param message The ChatMessage object to retry.
      */
     fun retrySendMessage(message: ChatMessageEntity) {
@@ -106,26 +120,23 @@ class ChatScreenViewModel(
     }
 
     /**
-     * Sends a system message indicating a user has joined the chat.
+     * Add a new member to the group.
      * This method should only be called once per user session.
      *
      * @param userName The name of the user who joined.
      * @param senderId The unique ID of the user who joined.
      */
-    private fun sendJoinMessage(senderId: String, userName: String) {
-        val joinMessage = ChatMessageEntity(
-            id = UuidGenerator.generateUniqueId(),
-            clientGeneratedId = UuidGenerator.generateUniqueId(),
-            senderId = senderId, // Use the user's actual ID
-            senderName = "system",
-            text = "$userName has joined the chat",
+    private fun addMemberToGroup(senderId: String, userName: String) {
+        val joinMessage = GroupMembersEntity(
+            senderId = senderId,
+            senderName = userName,
+            text = USER_JOINED_THE_CHAT_ROOM,
             timestamp = System.currentTimeMillis(),
-            isSystemMessage = true,
-            status = MessageStatus.SENT
+            isGroupMember = true,
         )
 
         viewModelScope.launch {
-            chatRepository.sendMessage(GENERAL_CHAT_ROOM_ID, joinMessage)
+            chatRepository.joinedGroup(GENERAL_CHAT_ROOM_ID, joinMessage)
         }
     }
 }
