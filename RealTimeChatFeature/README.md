@@ -6,7 +6,7 @@ This is an Android application demonstrating a real-time chat interface.
 
 The RealTimeChat app allows users to send and receive messages in a chat-like interface. It is built using modern Android development practices, including Jetpack Compose for the UI and the MVVM (Model-View-ViewModel) architectural pattern.
 
-*It simulates a basic chat experience with predefined messages.*
+*It simulates a basic, real-time chat experience.*
 
 ## Architecture: MVVM (Model-View-ViewModel)
 
