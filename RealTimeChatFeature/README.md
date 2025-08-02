@@ -17,20 +17,27 @@ This structure promotes separation of concerns, testability, and maintainability
 
   ```
    ├── data
-   │    ├── model
-   │    │   └── ChatMessage.kt
+   │    ├── local
+   │    │   ├── ChatDatabase.kt
+   |    |   ├── ChatMessageEntity.kt
+   |    |   ├── GroupMembersEntity.kt
+   |    |   └── MessageDao.kt 
+   │    ├──model
+   │    │    └── MessageStatus.kt
    │    └── repository
    │        └── ChatRepository.kt
-   │
+   |
    ├── ui
    │   ├── chatscreen
    │   │   ├── ChatScreen.kt
-   │   │   ├── ChatViewModel.kt
+   │   │   ├── ChatScreenViewModel.kt
+   |   |   ├── ChatViewModelFactory.kt
+   |   |   |
    │   │   ├── components
-   │   │   │   ├── MessageBubble.kt
+   │   │   │   ├── DateSeparator.kt
+   │   │   │   └── MessageBubble.kt
    │   │   │   └── MessageInputField.kt
-   │   │   │   └── DateSeparator.kt
-   │   │   │   └── CustomBubbleShape.kt
+   │   │   │   └── SystemMessage.kt
    │   │   └── ChatScreenState.kt (Sealed Class)
    │   │
    │   └── ChatActivity.kt
