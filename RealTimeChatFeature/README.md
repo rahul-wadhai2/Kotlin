@@ -58,14 +58,28 @@ This structure promotes separation of concerns, testability, and maintainability
 **data Layer:** model/ChatMessage.kt: Defines the data structure for a single chat message.
 repository/ChatRepository.kt: An interface defining how to interact with chat data (e.g., getMessages(), sendMessage()). This abstracts the data source.
 
-**ui Layer:** chatscreen/ChatScreen.kt: The Composable function responsible for rendering the entire chat UI. It observes the ViewModel's state.
-chatscreen/ChatViewModel.kt: Holds and manages the UI-related data. It exposes a StateFlow of ChatScreenState to the UI.
-chatscreen/components: Smaller, reusable Composable functions that make up the ChatScreen (e.g., MessageBubble, MessageInputField).
-chatscreen/ChatScreenState.kt: A sealed class representing the different states of the ChatScreen (Loading, Content, Error).
+**ui Layer:** ```ChatScreen.kt```: The Composable function responsible for rendering the entire chat UI. It observes the ViewModel's state.
+```ChatViewModel.kt```: Holds and manages the UI-related data. It exposes a StateFlow of ChatScreenState to the UI.
+```components```: Smaller, reusable Composable functions that make up the ChatScreen (e.g., MessageBubble, MessageInputField).
+```ChatScreenState.kt```: A sealed class representing the different states of the ChatScreen (Loading, Content, Error).
+```ChatActivity.kt```: The entry point of the application, responsible for setting up the Compose UI.
 
-**utils Layer:** DateUtils.kt: Helper for formatting timestamps.
+**utils Layer:** This an overview of the utility classes and constants located in the utils directory. These components are designed to be a central repository for reusable logic and application-wide configurations, helping to maintain a clean, organized, and efficient codebase.
 
-MainActivity.kt: The entry point of the application, responsible for setting up the Compose UI.
+*File Descriptions*
+
+* ```Constants.kt```: This file contains a collection of constants used throughout the application. It defines immutable values such as 
+```GENERAL_CHAT_ROOM_ID```, ```MESSAGE_CHAR_LIMIT```, and various keys for ```SharedPreferences```. This centralizes hardcoded values and makes them easy to manage.
+
+* ```DateUtils.kt```: This utility class provides helper functions for formatting dates and times. It includes methods like ```formatTime``` for displaying a timestamp in a 12-hour format with an AM/PM marker (e.g., "hh:mm a"), and ```formatDate``` for a full date format (e.g., "dd MMMM yyyy"). It also has a function 
+```isSameDay``` to check if two timestamps fall on the same day.
+
+* ```NetworkMonitor.kt```: The ```NetworkMonitor``` object is responsible for checking the device's network connectivity. It provides an 
+```isOnline()``` function to determine if there is an active internet connection (Wi-Fi, cellular, or Ethernet). This is essential for applications that need to handle network state changes and offline behavior.
+
+* ```SharedPreferencesUtil.kt```: This class simplifies the process of interacting with ```SharedPreferences```. It offers type-safe methods to save and retrieve simple data types, such as strings, and centralizes the logic for local data persistence.
+
+* ```UuidGenerator.kt:``` This utility provides a simple function, ```generateUniqueId()```, to create universally unique identifiers (UUIDs). This is useful for assigning unique IDs to entities within the application, such as chat messages or user sessions.
 
 ## Dummy Data Structure
 
