@@ -6,7 +6,7 @@ This is an Android application demonstrating a real-time chat interface.
 
 The RealTimeChat app allows users to send and receive messages in a chat-like interface. It is built using modern Android development practices, including Jetpack Compose for the UI and the MVVM (Model-View-ViewModel) architectural pattern.
 
-*It simulates a basic chat experience with predefined messages.*
+*It simulates a basic, real-time chat experience.*
 
 ## Architecture: MVVM (Model-View-ViewModel)
 
@@ -17,20 +17,27 @@ This structure promotes separation of concerns, testability, and maintainability
 
   ```
    ├── data
-   │    ├── model
-   │    │   └── ChatMessage.kt
+   │    ├── local
+   │    │   ├── ChatDatabase.kt
+   |    |   ├── ChatMessageEntity.kt
+   |    |   ├── GroupMembersEntity.kt
+   |    |   └── MessageDao.kt 
+   │    ├──model
+   │    │    └── MessageStatus.kt
    │    └── repository
    │        └── ChatRepository.kt
-   │
+   |
    ├── ui
    │   ├── chatscreen
    │   │   ├── ChatScreen.kt
-   │   │   ├── ChatViewModel.kt
+   │   │   ├── ChatScreenViewModel.kt
+   |   |   ├── ChatViewModelFactory.kt
+   |   |   |
    │   │   ├── components
-   │   │   │   ├── MessageBubble.kt
+   │   │   │   ├── DateSeparator.kt
+   │   │   │   └── MessageBubble.kt
    │   │   │   └── MessageInputField.kt
-   │   │   │   └── DateSeparator.kt
-   │   │   │   └── CustomBubbleShape.kt
+   │   │   │   └── SystemMessage.kt
    │   │   └── ChatScreenState.kt (Sealed Class)
    │   │
    │   └── ChatActivity.kt
@@ -51,14 +58,28 @@ This structure promotes separation of concerns, testability, and maintainability
 **data Layer:** model/ChatMessage.kt: Defines the data structure for a single chat message.
 repository/ChatRepository.kt: An interface defining how to interact with chat data (e.g., getMessages(), sendMessage()). This abstracts the data source.
 
-**ui Layer:** chatscreen/ChatScreen.kt: The Composable function responsible for rendering the entire chat UI. It observes the ViewModel's state.
-chatscreen/ChatViewModel.kt: Holds and manages the UI-related data. It exposes a StateFlow of ChatScreenState to the UI.
-chatscreen/components: Smaller, reusable Composable functions that make up the ChatScreen (e.g., MessageBubble, MessageInputField).
-chatscreen/ChatScreenState.kt: A sealed class representing the different states of the ChatScreen (Loading, Content, Error).
+**ui Layer:** ```ChatScreen.kt```: The Composable function responsible for rendering the entire chat UI. It observes the ViewModel's state.
+```ChatViewModel.kt```: Holds and manages the UI-related data. It exposes a StateFlow of ChatScreenState to the UI.
+```components```: Smaller, reusable Composable functions that make up the ChatScreen (e.g., MessageBubble, MessageInputField).
+```ChatScreenState.kt```: A sealed class representing the different states of the ChatScreen (Loading, Content, Error).
+```ChatActivity.kt```: The entry point of the application, responsible for setting up the Compose UI.
 
-**utils Layer:** DateUtils.kt: Helper for formatting timestamps.
+**utils Layer:** This an overview of the utility classes and constants located in the utils directory. These components are designed to be a central repository for reusable logic and application-wide configurations, helping to maintain a clean, organized, and efficient codebase.
 
-MainActivity.kt: The entry point of the application, responsible for setting up the Compose UI.
+*File Descriptions*
+
+* ```Constants.kt```: This file contains a collection of constants used throughout the application. It defines immutable values such as 
+```GENERAL_CHAT_ROOM_ID```, ```MESSAGE_CHAR_LIMIT```, and various keys for ```SharedPreferences```. This centralizes hardcoded values and makes them easy to manage.
+
+* ```DateUtils.kt```: This utility class provides helper functions for formatting dates and times. It includes methods like ```formatTime``` for displaying a timestamp in a 12-hour format with an AM/PM marker (e.g., "hh:mm a"), and ```formatDate``` for a full date format (e.g., "dd MMMM yyyy"). It also has a function 
+```isSameDay``` to check if two timestamps fall on the same day.
+
+* ```NetworkMonitor.kt```: The ```NetworkMonitor``` object is responsible for checking the device's network connectivity. It provides an 
+```isOnline()``` function to determine if there is an active internet connection (Wi-Fi, cellular, or Ethernet). This is essential for applications that need to handle network state changes and offline behavior.
+
+* ```SharedPreferencesUtil.kt```: This class simplifies the process of interacting with ```SharedPreferences```. It offers type-safe methods to save and retrieve simple data types, such as strings, and centralizes the logic for local data persistence.
+
+* ```UuidGenerator.kt:``` This utility provides a simple function, ```generateUniqueId()```, to create universally unique identifiers (UUIDs). This is useful for assigning unique IDs to entities within the application, such as chat messages or user sessions.
 
 ## Dummy Data Structure
 
@@ -152,7 +173,6 @@ chatrooms/
 │   └── messages/
 │       ├── message_id_1/
 │       │   ├── id: "message_id_1"
-│       │   ├── clientGeneratedId: "client_id_1"
 │       │   ├── senderId: "user_abc"
 │       │   ├── senderName: "Alice"
 │       │   ├── text: "Hello everyone!"
@@ -161,7 +181,6 @@ chatrooms/
 │       │   └── isSystemMessage: false
 │       ├── message_id_2/
 │       │   ├── id: "message_id_2"
-│       │   ├── clientGeneratedId: "client_id_2"
 │       │   ├── senderId: "user_xyz"
 │       │   ├── senderName: "Bob"
 │       │   ├── text: "Hi Alice!"
@@ -179,7 +198,6 @@ The ChatMessage Kotlin data class directly maps to the JSON structure of documen
 ```
 data class ChatMessage(
     val id: String = UUID.randomUUID().toString(), // Unique ID for the message (Firestore Document ID)
-    val clientGeneratedId: String = UUID.randomUUID().toString(), // Client-generated ID for retry safety (not used as Firestore ID)
     val senderId: String = "",       // ID of the user who sent the message (e.g., Firebase Auth UID)
     val senderName: String = "",     // Display name of the sender
     val text: String = "",           // The content of the message
@@ -225,4 +243,25 @@ The application employs a robust error handling strategy to provide clear feedba
  * ChatScreenState.Success: Messages have been loaded, and the screen is ready.
  * ChatScreenState.Error(messageResId, args): Used for all error notifications (input validation, network issues, send/retry failures, load failures). The UI resolves the messageResId and args to display a user-friendly message (e.g., a Retry Icon).
 
+## Listener Lifecycle
+The listener is managed by the ```ChatScreenViewModel``` and ```ChatRepository```.
+* **Initialization:** When the ```ChatScreenViewModel``` is created, it calls ```startFirestoreMessageListener``` from the ```ChatRepository```.
+* **Real-time Updates:** This listener, a coroutine launched in the applicationScope, continuously listens for real-time updates from a specific Firestore chat room.
+* **Data Flow:** Any new or updated messages from Firestore are collected as a snapshot and then inserted or updated into the local Room database.
+* **UI Observation:** The UI observes a Flow from the local Room database, which serves as the single source of truth. This ensures that the UI always displays the most up-to-date messages, whether from the local cache or a recent Firestore update.
 
+## Deduplication
+Deduplication is handled implicitly through the use of a local database and Firestore's real-time updates.
+* **Firebase Listener:** The ```startFirestoreMessageListener``` function in the ```ChatRepository``` retrieves all messages from Firestore and passes them to the ```messageDao```.
+* ```OnConflictStrategy.REPLACE:``` The insertMessages method in the ```MessageDao``` uses ```OnConflictStrategy.REPLACE```. This means that if a message with the same primary key (id) already exists in the Room database, the new version from Firestore will replace it, effectively handling updates and preventing duplicate messages from being stored.
+
+## Scroll Logic
+The scroll behavior is implemented in the ```ChatScreen.kt``` file using LazyColumn and LaunchedEffect.
+* ```LazyListState:``` ```LazyListState``` is created with ```rememberLazyListState()``` to manage the scroll position of the ```LazyColumn```.
+* **Auto-scrolling to the bottom:** ```LaunchedEffect``` observes changes to the size of the ```messages``` list. Whenever a new message is added (causing the list size to change), ```animateScrollToItem``` is called to automatically scroll the list to the last item, ensuring the user is always at the bottom of the conversation.
+
+## Firebase Listener
+The Firebase listener is a core component of this application's real-time functionality.
+* **Implementation:** The ```startFirestoreMessageListener``` function in ```ChatRepository.kt``` sets up the listener on a Firestore collection.
+* **Purpose:** The listener's purpose is to synchronize the Firestore data with the local Room database. It queries the ```messages``` subcollection within a specific ```chatroom document```, ordered by the ```timestamp```.
+* **Data Handling:** The listener's snapshots are collected as a ```Flow```, and the remote messages are then mapped to ```ChatMessageEntity``` objects before being inserted into the local database. This ensures the local data is always a reflection of the remote data.
