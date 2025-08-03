@@ -41,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.ui.theme.LightGreen
@@ -58,7 +59,7 @@ fun ChatRoomItem(
     onChatRoomClick: (ChatRoomEntity) -> Unit,
     onArchive: (ChatRoomEntity) -> Unit,
     onDelete: (ChatRoomEntity) -> Unit,
-    onToggleMute: (ChatRoomEntity) -> Unit
+    onToggleMute: (ChatRoomEntity) -> Unit,
 ) {
     var isRevealed by remember { mutableStateOf(false) }
 
@@ -139,18 +140,20 @@ fun ChatRoomItem(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = chatRoom.groupName?:SENDER_NAME,
+                        text = chatRoom.groupName.toString(),
                         style = MaterialTheme.typography.titleMedium,
-                        color = Color.DarkGray
+                        color = Color.DarkGray,
+                        fontSize = 14.sp
                     )
-                    chatRoom.lastMessage.let {
-                        Text(
-                            text = it.toString(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 1,
-                            color = Color.DarkGray
-                        )
-                    }
+
+                    Text(
+                        text = chatRoom.lastMessage.toString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        color = Color.DarkGray,
+                        fontSize = 12.sp
+                    )
+
                 }
                 Column(
                     horizontalAlignment = Alignment.End
@@ -158,7 +161,8 @@ fun ChatRoomItem(
                     Text(
                         text = formatTime(chatRoom.lastTimestamp),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.DarkGray
+                        color = Color.DarkGray,
+                        fontSize = 12.sp
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     if (chatRoom.unreadCount > 0) {
@@ -174,7 +178,9 @@ fun ChatRoomItem(
                 IconButton(onClick = { onToggleMute(chatRoom) }) {
                     Icon(
                         imageVector = if (chatRoom.isMuted) Icons.Default.NotificationsOff else Icons.Default.Notifications,
-                        contentDescription = if (chatRoom.isMuted) stringResource(R.string.unmute) else stringResource(R.string.mute),
+                        contentDescription = if (chatRoom.isMuted) stringResource(R.string.unmute) else stringResource(
+                            R.string.mute
+                        ),
                         tint = if (chatRoom.isMuted) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

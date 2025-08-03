@@ -63,10 +63,16 @@ interface MessageDao {
     suspend fun insertChatRoom(chatRoom: ChatRoomEntity)
 
     /**
-     * get all chat rooms from the database.
+     *  Inserts a list of chat rooms into the database.
      */
-    @Query("SELECT * FROM $CHAT_ROOM")
-    fun getChatRooms(): Flow<List<ChatRoomEntity>>
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertChatRooms(chatRooms: List<ChatRoomEntity>)
+
+    /**
+     * This is the new method to get all chat rooms from the database.
+     */
+    @Query("SELECT * FROM $CHAT_ROOM WHERE isArchived = 0 ORDER BY lastTimestamp DESC")
+    fun getAllChatRooms(): Flow<List<ChatRoomEntity>>
 
 //    /**
 //     * Query to get all chat rooms with their unread count.

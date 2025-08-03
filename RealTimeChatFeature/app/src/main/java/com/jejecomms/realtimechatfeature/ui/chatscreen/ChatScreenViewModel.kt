@@ -48,9 +48,15 @@ class ChatScreenViewModel(
      */
     val senderName = SharedPreferencesUtil.getString(SENDER_NAME_PREF)
 
-    private var firestoreListenerJob: Job? = null
+    /**
+     * Job for the Firestore listener for messages.
+     */
+    private var firestoreMessagesListenerJob: Job? = null
 
-    private var localDataCollectorJob: Job? = null
+    /**
+     * Job for the local data messages collector.
+     */
+    private var localDataMessagesCollectorJob: Job? = null
 
     /**
      * Initializes the chat room by starting to listen for messages and members.
@@ -60,12 +66,12 @@ class ChatScreenViewModel(
      */
     fun initializeChatRoom(roomId: String) {
         // Cancel any previous jobs to prevent conflicts
-        firestoreListenerJob?.cancel()
-        localDataCollectorJob?.cancel()
+        firestoreMessagesListenerJob?.cancel()
+        localDataMessagesCollectorJob?.cancel()
 
         // Launch a separate coroutine to listen to Firestore changes and update the local DB.
         // This is a long-running job that should be active as long as the screen is.
-        firestoreListenerJob = viewModelScope.launch {
+        firestoreMessagesListenerJob = viewModelScope.launch {
             try {
                 chatRepository.startFirestoreMessageListener(roomId).collect { remoteMessages ->
                     chatRepository.insertMessages(remoteMessages)
@@ -75,7 +81,7 @@ class ChatScreenViewModel(
 
         // Launch a separate coroutine to combine local data and update the UI state.
         // This will trigger whenever the local database changes (which is updated by the job above).
-        localDataCollectorJob = viewModelScope.launch {
+        localDataMessagesCollectorJob = viewModelScope.launch {
             try {
                 _uiState.value = ChatScreenState.Loading
                 combine(

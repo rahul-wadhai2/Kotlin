@@ -7,6 +7,7 @@ import com.jejecomms.realtimechatfeature.ChatApplication
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.data.repository.ChatRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,9 +38,44 @@ application: ChatApplication) : AndroidViewModel(application) {
      */
     val createGroupError: StateFlow<String?> = _createGroupError.asStateFlow()
 
+    /**
+     * Job for the Firestore listener for rooms.
+     */
+    private var firestoreRoomsListenerJob: Job? = null
+
+    /**
+     * Job for the local data rooms collector.
+     */
+    private var localDataRoomsCollectorJob: Job? = null
+
     init {
-        fetchChatRooms()
-        //fetchChatRoomsUnreadMessageCount()
+        initializeChatRooms()
+    }
+
+    /**
+     * Initializes the chat rooms by starting to listen for rooms.
+     * This should be called whenever the user navigates to a chat rooms screen.
+     */
+    fun initializeChatRooms() {
+        // Cancel any previous jobs to prevent conflicts
+        firestoreRoomsListenerJob?.cancel()
+        localDataRoomsCollectorJob?.cancel()
+
+        // Launch a separate coroutine to listen to Firestore changes and update the local DB.
+        // This is a long-running job that should be active as long as the screen is.
+        firestoreRoomsListenerJob = viewModelScope.launch {
+            try {
+                chatRepository.startFirestoreChatRoomsListener().collect { remoteRooms ->
+                    chatRepository.insertRooms(remoteRooms)
+                }
+            } catch (_: Exception) { }
+        }
+
+        localDataRoomsCollectorJob = viewModelScope.launch {
+            chatRepository.getAllChatRooms().collect { chatRoomList ->
+                _chatRooms.value = chatRoomList
+            }
+        }
     }
 
     /**
@@ -54,14 +90,21 @@ application: ChatApplication) : AndroidViewModel(application) {
 //    }
 
     /**
-     * Fetches chat rooms from the repository and updates the UI state.
+     * Collect chat rooms from the local database.
      */
-    private fun fetchChatRooms() {
+    private fun getAllChatRooms() {
         viewModelScope.launch {
-            chatRepository.getChatRooms().collect { chatRoomList ->
+            chatRepository.getAllChatRooms().collect { chatRoomList ->
                 _chatRooms.value = chatRoomList
             }
         }
+    }
+
+        /**
+     * Start the Firestore listener for chat room.
+     */
+    private fun startChatRoomsListener() {
+
     }
 
     /**

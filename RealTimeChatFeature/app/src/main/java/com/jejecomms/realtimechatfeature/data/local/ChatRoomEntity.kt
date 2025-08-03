@@ -26,5 +26,6 @@ data class ChatRoomEntity(
     val isMuted: Boolean = false,
     val isArchived: Boolean = false,
     val groupName: String? = null,
-    val lastReadTimestamp: Long = 0L
+    val lastReadTimestamp: Long = 0L,
+    val userName: String? = null
 )

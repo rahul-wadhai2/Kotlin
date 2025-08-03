@@ -51,29 +51,30 @@ class ChatRepository(
      * and writing them to the local database.
      * This should be called once, for example, in the ViewModel's init block.
      */
-    fun startFirestoreMessageListener(roomId: String): Flow<List<ChatMessageEntity>> = callbackFlow {
-        val messagesCollection = firebasFireStore.collection(CHAT_ROOMS)
-            .document(roomId)
-            .collection(MESSAGES)
-            .orderBy("timestamp", Query.Direction.ASCENDING)
+    fun startFirestoreMessageListener(roomId: String): Flow<List<ChatMessageEntity>> =
+        callbackFlow {
+            val messagesCollection = firebasFireStore.collection(CHAT_ROOMS)
+                .document(roomId)
+                .collection(MESSAGES)
+                .orderBy("timestamp", Query.Direction.ASCENDING)
 
-        val listenerRegistration = messagesCollection.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                close(error)
-                return@addSnapshotListener
-            }
+            val listenerRegistration = messagesCollection.addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
 
-            if (snapshot != null) {
-                val remoteMessages = snapshot.documents
-                    .mapNotNull {
-                        // Correctly set the roomId on the entity after converting from Firestore
-                        it.toObject(ChatMessageEntity::class.java)?.copy(roomId = roomId)
-                    }
-                trySend(remoteMessages)
+                if (snapshot != null) {
+                    val remoteMessages = snapshot.documents
+                        .mapNotNull {
+                            // Correctly set the roomId on the entity after converting from Firestore
+                            it.toObject(ChatMessageEntity::class.java)?.copy(roomId = roomId)
+                        }
+                    trySend(remoteMessages)
+                }
             }
+            awaitClose { listenerRegistration.remove() }
         }
-        awaitClose { listenerRegistration.remove() }
-    }
 
 
     /**
@@ -236,7 +237,11 @@ class ChatRepository(
      * @param currentUserId The ID of the user creating the room.
      * @return `true` if the chat room was created successfully, `false` otherwise.
      */
-    suspend fun createChatRoom(groupName: String, userName: String, currentUserId: String): Boolean {
+    suspend fun createChatRoom(
+        groupName: String,
+        userName: String,
+        currentUserId: String
+    ): Boolean {
         // First, check if a group with this name already exists.
         // This prevents duplicate group names.
         if (checkIfGroupNameExists(groupName)) {
@@ -255,7 +260,9 @@ class ChatRepository(
             unreadCount = 0,
             isMuted = false,
             isArchived = false,
-            groupName = groupName
+            groupName = groupName,
+            userName = userName,
+            lastReadTimestamp = 0
         )
 
         // Create the member for the new room
@@ -288,9 +295,7 @@ class ChatRepository(
             messageDao.insertGroupMember(joinData)
 
             true
-        } catch (e: Exception) {
-            // Log the error, but the group creation failed, so return false.
-            // No local database updates were made, so no rollback is needed.
+        } catch (_: Exception) {
             false
         }
     }
@@ -321,6 +326,53 @@ class ChatRepository(
         withContext(Dispatchers.IO) {
             messageDao.insertMessages(messages)
         }
+    }
+
+    /**
+     * A function to start listening to real-time updates from Firestore for chat rooms
+     * and emitting them as a Flow of lists of ChatRoomEntity objects.
+     */
+    fun startFirestoreChatRoomsListener(): Flow<List<ChatRoomEntity>> = callbackFlow {
+        val chatRoomsCollection = firebasFireStore.collection(CHAT_ROOMS)
+            .orderBy("lastTimestamp", Query.Direction.DESCENDING)
+
+        val listenerRegistration = chatRoomsCollection.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+
+            if (snapshot != null) {
+                val remoteChatRooms = snapshot.documents.mapNotNull {
+                    it.toObject(ChatRoomEntity::class.java)
+                }
+                trySend(remoteChatRooms)
+            }
+        }
+        awaitClose { listenerRegistration.remove() }
+    }
+
+    /**
+     * Inserts a list of rooms into the local Room database.
+     * It uses OnConflictStrategy.REPLACE to handle updates.
+     *
+     * @param messages The list of rooms to insert.
+     */
+    suspend fun insertRooms(rooms: List<ChatRoomEntity>) {
+        withContext(Dispatchers.IO) {
+            messageDao.insertChatRooms(rooms)
+        }
+    }
+
+
+    /**
+     * Gets a Flow of all chat rooms from the local Room database.
+     * The list is ordered by the last message timestamp in descending order.
+     *
+     * @return a Flow of a list of ChatRoomEntity objects.
+     */
+    fun getAllChatRooms(): Flow<List<ChatRoomEntity>> {
+        return messageDao.getAllChatRooms()
     }
 
 //    /**
