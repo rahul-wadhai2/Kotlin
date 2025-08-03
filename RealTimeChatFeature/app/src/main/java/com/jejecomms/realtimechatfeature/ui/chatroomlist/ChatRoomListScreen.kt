@@ -201,7 +201,7 @@ fun ChatRoomListScreen(
                             contentColor = White
                         )
                     ) {
-                        Text("Create Room")
+                        Text(stringResource(R.string.btn_dialog_text))
                     }
                 }
             }

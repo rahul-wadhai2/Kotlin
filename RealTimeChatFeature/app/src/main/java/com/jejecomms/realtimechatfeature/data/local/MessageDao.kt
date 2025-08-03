@@ -71,8 +71,27 @@ interface MessageDao {
     /**
      * This is the new method to get all chat rooms from the database.
      */
-    @Query("SELECT * FROM $CHAT_ROOM WHERE isArchived = 0 ORDER BY lastTimestamp DESC")
+    @Query("SELECT * FROM $CHAT_ROOM WHERE isArchived = 0 AND isDeletedLocally = 0 ORDER BY lastTimestamp DESC")
     fun getAllChatRooms(): Flow<List<ChatRoomEntity>>
+
+    /**
+     * Query to perform a soft delete on a chat room.
+     */
+    @Query("UPDATE $CHAT_ROOM SET isDeletedLocally = 1 WHERE roomId = :roomId")
+    suspend fun markChatRoomAsLocallyDeleted(roomId: String)
+
+    /**
+     * Query to find rooms that are locally deleted but not yet synced with Firestore.
+     */
+    @Query("SELECT * FROM $CHAT_ROOM WHERE isDeletedLocally = 1")
+    fun getLocallyDeletedChatRooms(): Flow<List<ChatRoomEntity>>
+
+    /**
+     * Method to permanently delete a room from the local database.
+     */
+    @Query("DELETE FROM $CHAT_ROOM WHERE roomId = :roomId")
+    suspend fun deleteChatRoom(roomId: String)
+
 
 //    /**
 //     * Query to get all chat rooms with their unread count.

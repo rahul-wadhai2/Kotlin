@@ -1,5 +1,10 @@
 package com.jejecomms.realtimechatfeature.data.repository
 
+import android.content.Context
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.snapshots
@@ -15,11 +20,13 @@ import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME_PREF
 import com.jejecomms.realtimechatfeature.utils.NetworkMonitor
 import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
+import com.jejecomms.realtimechatfeature.workers.DeletionSyncWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -34,6 +41,7 @@ class ChatRepository(
     private val firebasFireStore: FirebaseFirestore,
     private val messageDao: MessageDao,
     private val applicationScope: CoroutineScope,
+    private val context: Context
 ) {
 
     /**
@@ -168,7 +176,7 @@ class ChatRepository(
      * @param roomId The ID of the chat room.
      * @param member The GroupMembersEntity representing the user.
      */
-    suspend fun joinRoom(roomId: String, member: ChatRoomMemberEntity) {
+    fun joinRoom(roomId: String, member: ChatRoomMemberEntity) {
         applicationScope.launch {
             try {
                 // Update local database immediately to show pending status
@@ -229,6 +237,34 @@ class ChatRepository(
     }
 
     /**
+     * Checks if a chat room with the given roomId exists in Firestore.
+     * If the room does not exist, it triggers a local deletion.
+     *
+     * @param roomId The ID of the room to check.
+     * @return `true` if the room exists in Firestore, `false` otherwise.
+     */
+    suspend fun checkIfRoomIdExists(roomId: String): Boolean {
+        return try {
+            val querySnapshot = firebasFireStore.collection(CHAT_ROOMS)
+                .whereEqualTo("roomId", roomId)
+                .get()
+                .await()
+
+            val exists = !querySnapshot.isEmpty
+
+            // If the room does not exist in Firestore, delete it from the local database
+            if (!exists) {
+                withContext(Dispatchers.IO) {
+                    messageDao.deleteChatRoom(roomId)
+                }
+            }
+            exists
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /**
      * Creates a new chat room and adds the creating user as a member.
      * It first checks if a group with the same name already exists.
      *
@@ -240,7 +276,7 @@ class ChatRepository(
     suspend fun createChatRoom(
         groupName: String,
         userName: String,
-        currentUserId: String
+        currentUserId: String,
     ): Boolean {
         // First, check if a group with this name already exists.
         // This prevents duplicate group names.
@@ -301,22 +337,6 @@ class ChatRepository(
     }
 
     /**
-     * Retrieves all chat rooms from Firestore in real-time.
-     * @return A Flow of a list of ChatRoomEntity.
-     */
-    fun getChatRooms(): Flow<List<ChatRoomEntity>> = flow {
-        val chatRoomsCollection = firebasFireStore.collection(CHAT_ROOMS)
-            .orderBy("lastTimestamp", Query.Direction.DESCENDING)
-
-        chatRoomsCollection.snapshots().collect { snapshot ->
-            val chatRooms = snapshot.documents.mapNotNull {
-                it.toObject(ChatRoomEntity::class.java)
-            }
-            emit(chatRooms)
-        }
-    }
-
-    /**
      * Inserts a list of messages into the local Room database.
      * It uses OnConflictStrategy.REPLACE to handle updates.
      *
@@ -364,7 +384,6 @@ class ChatRepository(
         }
     }
 
-
     /**
      * Gets a Flow of all chat rooms from the local Room database.
      * The list is ordered by the last message timestamp in descending order.
@@ -373,6 +392,56 @@ class ChatRepository(
      */
     fun getAllChatRooms(): Flow<List<ChatRoomEntity>> {
         return messageDao.getAllChatRooms()
+    }
+
+    /**
+     * Deletes a chat room, handling both local and Firestore deletions.
+     * If the network is unavailable, the local deletion is performed immediately,
+     * and a background job attempts to sync with Firestore later.
+     */
+    suspend fun deleteChatRoom(roomId: String) {
+        withContext(Dispatchers.IO) {
+            //Perform an optimistic local soft delete
+            messageDao.markChatRoomAsLocallyDeleted(roomId)
+        }
+
+        //Enqueue the WorkManager to handle the Firestore deletion
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val deletionRequest = OneTimeWorkRequestBuilder<DeletionSyncWorker>()
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(context).enqueue(deletionRequest)
+    }
+
+    /**
+     * Gets a list of locally deleted rooms to be synchronized.
+     * This is a one-time read for the WorkManager.
+     */
+    suspend fun getLocallyDeletedRoomsForSync(): List<ChatRoomEntity> {
+        return withContext(Dispatchers.IO) {
+            messageDao.getLocallyDeletedChatRooms().first()
+        }
+    }
+
+    /**
+     * Deletes a chat room from Firestore.
+     */
+    suspend fun deleteRoomFromFirestore(roomId: String) {
+        firebasFireStore.collection(CHAT_ROOMS)
+            .document(roomId)
+            .delete()
+            .await()
+    }
+
+    /**
+     * Deletes a chat room from the local database.
+     */
+    suspend fun deleteRoomFromLocalDb(roomId: String) {
+        messageDao.deleteChatRoom(roomId)
     }
 
 //    /**

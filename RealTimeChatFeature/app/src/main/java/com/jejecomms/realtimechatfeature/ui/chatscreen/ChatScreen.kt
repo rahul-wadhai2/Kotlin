@@ -6,9 +6,12 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -17,6 +20,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -35,8 +40,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.ui.chatscreen.components.DateSeparator
 import com.jejecomms.realtimechatfeature.ui.chatscreen.components.MessageBubble
@@ -62,6 +72,7 @@ fun ChatScreen(
      * Get the room ID from the selected chat room.
      */
     val roomId = selectedChatRoom?.roomId ?: ""
+
     /**
      * Handle the system back button press to navigate back to the chat room list.
      */
@@ -96,6 +107,11 @@ fun ChatScreen(
      */
     var showInputField by remember { mutableStateOf(false) }
 
+    /**
+     * State variable for the check roomId.
+     */
+    val isRoomIdExists by chatViewModel.isRoomExists.collectAsStateWithLifecycle()
+
     LaunchedEffect(Unit) {
         showInputField = true
     }
@@ -125,22 +141,53 @@ fun ChatScreen(
         },
         containerColor = LightYellow,
         bottomBar = {
-            AnimatedVisibility(
-                visible = showInputField,
-                enter = slideInVertically(
-                    initialOffsetY = { fullHeight -> fullHeight / 2 }
-                ) + fadeIn(animationSpec = tween(durationMillis = 300)),
-                exit = ExitTransition.None
-            ) {
-                MessageInputField(
-                    onSendMessage = { message ->
-                        chatViewModel.sendMessage(message, currentSenderId, roomId)
-                    },
+            if (isRoomIdExists == false) {
+                // Show the "room not available" message and exit button
+                Column(
                     modifier = Modifier
+                        .fillMaxWidth()
                         .navigationBarsPadding()
                         .imePadding()
-                        .padding(start = 6.dp, end = 6.dp, bottom = 6.dp)
-                )
+                        .background(Color.White)
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = stringResource(R.string.room_is_no_longer_available),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Red,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Button(
+                        onClick = onBackClick,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Red,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = stringResource(R.string.btn_exit_room), textAlign = TextAlign.Center)
+                    }
+                }
+            } else {
+                // Show the message input field
+                AnimatedVisibility(
+                    visible = showInputField,
+                    enter = slideInVertically(
+                        initialOffsetY = { fullHeight -> fullHeight / 2 }
+                    ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+                    exit = ExitTransition.None
+                ) {
+                    MessageInputField(
+                        onSendMessage = { message ->
+                            chatViewModel.sendMessage(message, currentSenderId, roomId)
+                        },
+                        modifier = Modifier
+                            .navigationBarsPadding()
+                            .imePadding()
+                            .padding(start = 6.dp, end = 6.dp, bottom = 6.dp)
+                    )
+                }
             }
         }
     ) { paddingValues ->
@@ -195,7 +242,6 @@ fun ChatScreen(
                             }
                         }
                     }
-
                 }
 
                 is ChatScreenState.Error -> {

@@ -16,6 +16,7 @@ import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
@@ -59,12 +60,23 @@ class ChatScreenViewModel(
     private var localDataMessagesCollectorJob: Job? = null
 
     /**
+     * State flow for the roomId check when entering in room.
+     */
+    private val _isRoomExists = MutableStateFlow<Boolean?>(null)
+
+    /**
+     * Exposes the boolean is roomId exists as a StateFlow.
+     */
+    val isRoomExists: StateFlow<Boolean?> = _isRoomExists.asStateFlow()
+
+    /**
      * Initializes the chat room by starting to listen for messages and members.
      * This should be called whenever the user navigates to a new chat screen.
      *
      * @param roomId The ID of the chat room to initialize.
      */
     fun initializeChatRoom(roomId: String) {
+        _isRoomExists.value = null
         // Cancel any previous jobs to prevent conflicts
         firestoreMessagesListenerJob?.cancel()
         localDataMessagesCollectorJob?.cancel()
@@ -121,6 +133,8 @@ class ChatScreenViewModel(
                 }
             }
         }
+
+        checkIfRoomExists(roomId)
 
         // Launch a new coroutine to update the last read timestamp
 //        viewModelScope.launch {
@@ -184,6 +198,15 @@ class ChatScreenViewModel(
 
         viewModelScope.launch {
             chatRepository.joinRoom(roomId, joinData)
+        }
+    }
+
+    /***
+     * Checks if the room exists.
+     */
+    fun checkIfRoomExists(roomId: String) {
+        viewModelScope.launch {
+            _isRoomExists.value = chatRepository.checkIfRoomIdExists(roomId)
         }
     }
 }

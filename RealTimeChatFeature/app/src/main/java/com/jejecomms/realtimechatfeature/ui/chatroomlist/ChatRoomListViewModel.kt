@@ -79,6 +79,15 @@ application: ChatApplication) : AndroidViewModel(application) {
     }
 
     /**
+     * Delete a chat room.
+     */
+    fun onDeleteChatRoom(roomId: String) {
+        viewModelScope.launch {
+            chatRepository.deleteChatRoom(roomId)
+        }
+    }
+
+    /**
      * Fetch chat rooms with their unread message count.
      */
 //    private fun fetchChatRoomsUnreadMessageCount() {
@@ -98,13 +107,6 @@ application: ChatApplication) : AndroidViewModel(application) {
                 _chatRooms.value = chatRoomList
             }
         }
-    }
-
-        /**
-     * Start the Firestore listener for chat room.
-     */
-    private fun startChatRoomsListener() {
-
     }
 
     /**

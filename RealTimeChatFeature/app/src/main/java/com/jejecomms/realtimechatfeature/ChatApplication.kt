@@ -2,9 +2,11 @@ package com.jejecomms.realtimechatfeature
 
 import android.app.Application
 import com.google.firebase.FirebaseApp
+import com.google.firebase.firestore.FirebaseFirestore
 import com.jejecomms.realtimechatfeature.data.local.ChatDatabase
-import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
+import com.jejecomms.realtimechatfeature.data.repository.ChatRepository
 import com.jejecomms.realtimechatfeature.utils.NetworkMonitor
+import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 
@@ -26,6 +28,16 @@ class ChatApplication : Application() {
      * Lazy initialization of the MessageDao instance.
      */
     val messageDao by lazy { chatDatabase.messageDao() }
+
+    // Lazily create the Firestore instance
+    private val firebasFireStore by lazy { FirebaseFirestore.getInstance() }
+
+    /**
+     * Expose the ChatRepository instance.
+     */
+    val chatRepository by lazy {
+        ChatRepository(firebasFireStore, messageDao, applicationScope, this)
+    }
 
     override fun onCreate() {
         super.onCreate()

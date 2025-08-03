@@ -43,7 +43,7 @@ class ChatActivity : ComponentActivity() {
         val application = application as ChatApplication
         val applicationScope = application.applicationScope
         val messageDao = application.messageDao
-        ChatRepository(firestoreDb, messageDao, applicationScope)
+        ChatRepository(firestoreDb, messageDao, applicationScope, this)
     }
 
     /**
@@ -102,8 +102,7 @@ class ChatActivity : ComponentActivity() {
                                 // chatRoomListViewModel.archiveChatRoom(chatRoom)
                             },
                             onDelete = { chatRoom ->
-                                // Call the ViewModel method to delete the chat room
-                                //chatRoomListViewModel.deleteChatRoom(chatRoom)
+                                chatRoomListViewModel.onDeleteChatRoom(chatRoom.roomId.toString())
                             },
                             viewModel = chatRoomListViewModel,
                             currentUserId = currentSenderId

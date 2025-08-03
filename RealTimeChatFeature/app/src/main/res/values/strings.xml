@@ -24,4 +24,7 @@
     <string name="enter_group_name">Enter group name</string>
     <string name="create_group">Create Group</string>
     <string name="enter_your_name">Enter your name</string>
+    <string name="room_is_no_longer_available">This room is no longer available.</string>
+    <string name="btn_exit_room">Exit this room</string>
+    <string name="btn_dialog_text">Create Room</string>
 </resources>
