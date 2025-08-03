@@ -11,4 +11,17 @@
     <string name="des_sending">Description sending status icon</string>
     <string name="des_sent">Description sent status icon</string>
     <string name="des_retry">Description retry status icon</string>
+    <string name="chat_rooms">Chat Rooms</string>
+    <string name="chat_room">Chat Room</string>
+    <string name="unmute">Unmute</string>
+    <string name="mute">Mute</string>
+    <string name="user_avatar">Des avtar image on room list item</string>
+    <string name="des_add_new_room">Add new room ic</string>
+    <string name="create_room">Create Room</string>
+    <string name="create_group_error_already_exit">A group with this name already exists.</string>
+    <string name="error_user_name_empty">Your name cannot be empty</string>
+    <string name="error_group_name_empty">Group name cannot be empty</string>
+    <string name="enter_group_name">Enter group name</string>
+    <string name="create_group">Create Group</string>
+    <string name="enter_your_name">Enter your name</string>
 </resources>

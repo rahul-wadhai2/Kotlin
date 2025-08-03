@@ -1,5 +1,6 @@
 package com.jejecomms.realtimechatfeature.ui.chatscreen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
@@ -14,8 +15,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -31,14 +36,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.jejecomms.realtimechatfeature.R
+import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.ui.chatscreen.components.DateSeparator
 import com.jejecomms.realtimechatfeature.ui.chatscreen.components.MessageBubble
 import com.jejecomms.realtimechatfeature.ui.chatscreen.components.MessageInputField
 import com.jejecomms.realtimechatfeature.ui.chatscreen.components.SystemMessage
-import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME
+import com.jejecomms.realtimechatfeature.ui.theme.DarkGreenTheme
+import com.jejecomms.realtimechatfeature.ui.theme.LightYellow
+import com.jejecomms.realtimechatfeature.ui.theme.White
 import com.jejecomms.realtimechatfeature.utils.DateUtils
 
 /**
@@ -49,7 +55,27 @@ import com.jejecomms.realtimechatfeature.utils.DateUtils
 fun ChatScreen(
     chatViewModel: ChatScreenViewModel,
     currentSenderId: String,
+    selectedChatRoom: ChatRoomEntity?,
+    onBackClick: () -> Unit
 ) {
+    /**
+     * Get the room ID from the selected chat room.
+     */
+    val roomId = selectedChatRoom?.roomId ?: ""
+    /**
+     * Handle the system back button press to navigate back to the chat room list.
+     */
+    BackHandler {
+        onBackClick()
+    }
+
+    /**
+     * Initialize the chat room when the screen is first composed.
+     */
+    LaunchedEffect(roomId) {
+        chatViewModel.initializeChatRoom(roomId)
+    }
+
     /**
      * Collects the UI state from the ViewModel.
      */
@@ -80,14 +106,24 @@ fun ChatScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.real_time_chat)) },
+                title = { Text(selectedChatRoom?.groupName.toString()) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = White
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = DarkGreenTheme,
+                    titleContentColor = White
                 ),
                 scrollBehavior = scrollBehavior
             )
         },
+        containerColor = LightYellow,
         bottomBar = {
             AnimatedVisibility(
                 visible = showInputField,
@@ -98,7 +134,7 @@ fun ChatScreen(
             ) {
                 MessageInputField(
                     onSendMessage = { message ->
-                        chatViewModel.sendMessage(message, currentSenderId, SENDER_NAME)
+                        chatViewModel.sendMessage(message, currentSenderId, roomId)
                     },
                     modifier = Modifier
                         .navigationBarsPadding()
@@ -152,7 +188,7 @@ fun ChatScreen(
                                         message = message,
                                         isCurrentUser = message.senderId == currentSenderId,
                                         onRetryClick = { msgToRetry ->
-                                            chatViewModel.retrySendMessage(msgToRetry)
+                                            chatViewModel.retrySendMessage(msgToRetry, roomId)
                                         }
                                     )
                                 }

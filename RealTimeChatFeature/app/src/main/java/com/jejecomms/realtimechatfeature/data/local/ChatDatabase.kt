@@ -8,8 +8,9 @@ import androidx.room.RoomDatabase
 /**
  * Room database for the chat feature.
  */
-@Database(entities = [ChatMessageEntity::class
-    ,GroupMembersEntity::class], version = 1, exportSchema = false)
+@Database(entities = [ChatMessageEntity::class,ChatRoomMemberEntity::class,
+    ChatRoomEntity::class]
+    ,version = 1, exportSchema = false)
 abstract class ChatDatabase : RoomDatabase() {
     abstract fun messageDao(): MessageDao
 

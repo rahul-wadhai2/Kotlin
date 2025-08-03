@@ -2,6 +2,7 @@ package com.jejecomms.realtimechatfeature.data.local
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 
 /**
@@ -14,13 +15,13 @@ import com.jejecomms.realtimechatfeature.utils.UuidGenerator
  *  @param timestamp Timestamp when the message was created.
  *  @param isGroupMember Flag indicating if the message is a system message.
  */
-@Entity(tableName = "group_members")
-data class GroupMembersEntity(
+@Entity(tableName = CHAT_ROOM_MEMBERS)
+data class ChatRoomMemberEntity(
     @PrimaryKey
     val id: String = UuidGenerator.generateUniqueId(),
     val senderId: String = "",
     val senderName: String = "",
-    val text: String = "",
     val timestamp: Long = System.currentTimeMillis(),
     val isGroupMember: Boolean = false,
+    val roomId: String ="",
 )

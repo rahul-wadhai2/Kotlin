@@ -20,7 +20,7 @@ private val LightColorScheme = lightColorScheme(
     primary = DarkGreenTheme,
     secondary = PurpleGrey40,
     tertiary = Pink40,
-    background = light_white_yellow
+    background = LightYellow
 
     /* Other default colors to override
     background = Color(0xFFFFFBFE),

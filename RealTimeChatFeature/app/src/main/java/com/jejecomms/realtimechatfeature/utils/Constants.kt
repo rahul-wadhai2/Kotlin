@@ -5,11 +5,6 @@ package com.jejecomms.realtimechatfeature.utils
  */
 object Constants {
     /**
-     * Chat room ID.
-     */
-    const val GENERAL_CHAT_ROOM_ID = "general_chat_room"
-
-    /**
      * Maximum character limit for a message
      */
     const val MESSAGE_CHAR_LIMIT = 300
@@ -17,12 +12,7 @@ object Constants {
     /**
      * Sender Name
      */
-    const val SENDER_NAME = "Rahul Wadhai"
-
-    /**
-     * Sender ID store in SharedPreferences.
-     */
-    const val KEY_SENDER_ID = "current_sender_id"
+    const val SENDER_NAME = "Guest"
 
     /**
      * User joined the chat room message.
@@ -33,4 +23,23 @@ object Constants {
      * You have joined the chat room message.
      */
     const val YOU_HAVE_JOINED_THE_CHAT_ROOM = "You have joined the chat room"
+
+    /*************************SharedPreferences*********************************/
+    /**
+     * Sender Name store in SharedPreferences.
+     */
+    const val SENDER_NAME_PREF = "sender_name"
+
+    /**
+     * Sender ID store in SharedPreferences.
+     */
+    const val KEY_SENDER_ID = "current_sender_id"
+
+    /*************************Table Name*********************************/
+    const val CHAT_ROOM = "chat_room"
+    const val CHAT_ROOM_MEMBERS = "chat_room_members"
+    const val MESSAGES = "messages"
+
+    /*************************Firebase Collection*********************************/
+    const val CHAT_ROOMS = "chatrooms"
 }

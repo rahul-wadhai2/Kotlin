@@ -3,6 +3,7 @@ package com.jejecomms.realtimechatfeature.data.local
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
+import com.jejecomms.realtimechatfeature.utils.Constants.MESSAGES
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 
 /**
@@ -16,14 +17,16 @@ import com.jejecomms.realtimechatfeature.utils.UuidGenerator
  *  @param status Current status of the message.
  *  @param isSystemMessage Flag indicating if the message is a system message.
  */
-@Entity(tableName = "messages")
+@Entity(tableName = MESSAGES)
 data class ChatMessageEntity(
     @PrimaryKey
     val id: String = UuidGenerator.generateUniqueId(),
+    val clientGeneratedId: String = UuidGenerator.generateUniqueId(),
     val senderId: String = "",
     val senderName: String = "",
     val text: String = "",
     val timestamp: Long = System.currentTimeMillis(),
     val status: MessageStatus = MessageStatus.SENDING,
-    val isSystemMessage: Boolean = false
+    val isSystemMessage: Boolean = false,
+    val roomId: String = ""
 )

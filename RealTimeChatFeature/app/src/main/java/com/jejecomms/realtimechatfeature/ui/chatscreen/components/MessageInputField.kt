@@ -21,7 +21,6 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults.outlinedTextFieldC
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -37,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.ui.theme.DarkGreen
+import com.jejecomms.realtimechatfeature.ui.theme.LightGrey240
 import com.jejecomms.realtimechatfeature.utils.Constants.MESSAGE_CHAR_LIMIT
 
 /**
@@ -74,7 +74,7 @@ fun MessageInputField(
                 .animateContentSize()
                 .padding(end = 8.dp, start = 8.dp, bottom = 8.dp),
             shape = RoundedCornerShape(25.dp),
-            color = Color(0xFFF0F0F0),
+            color = LightGrey240,
             shadowElevation = 2.dp
         ) {
             OutlinedTextField(
@@ -94,9 +94,9 @@ fun MessageInputField(
                     unfocusedBorderColor = Color.Transparent,
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
-                    cursorColor = MaterialTheme.colorScheme.primary,
-                    focusedPlaceholderColor = Color.Gray,
-                    unfocusedPlaceholderColor = Color.Gray,
+                    cursorColor = Color.Black,
+                    focusedPlaceholderColor = Color.LightGray,
+                    unfocusedPlaceholderColor = Color.LightGray,
                     focusedTextColor = Color.Black,
                     unfocusedTextColor = Color.Black
                 )
