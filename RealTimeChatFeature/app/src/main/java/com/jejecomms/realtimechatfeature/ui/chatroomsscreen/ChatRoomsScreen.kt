@@ -1,5 +1,6 @@
 package com.jejecomms.realtimechatfeature.ui.chatroomsscreen
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -35,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -94,22 +97,50 @@ fun ChatRoomListScreen(
      */
     var userNameError by remember { mutableStateOf(false) }
 
+    // State variable to hold the success message
+    var successMessage by remember { mutableStateOf<String?>(null) }
+
+    /**
+     * State indicating the success of group creation.
+     */
+    val groupCreationSuccessful by chatRoomsViewModel.groupCreationSuccessful.collectAsStateWithLifecycle()
+
     /**
      * State variable for the create group error.
      */
     val createGroupError by chatRoomsViewModel.createGroupError.collectAsStateWithLifecycle()
 
+    val context = LocalContext.current
+
+    //This LaunchedEffect reacts to the success state.
+    LaunchedEffect(groupCreationSuccessful) {
+        if (groupCreationSuccessful) {
+            // Show a toast message on successful creation
+            Toast.makeText(context, context.getString(R.string.group_created_successful)
+                ,Toast.LENGTH_SHORT).show()
+
+            // Dismiss the dialog
+            showCreateGroupDialog = false
+            // Reset fields
+            groupName = ""
+            userName = ""
+            // Reset the success state in the ViewModel to prevent
+            // the LaunchedEffect from re-triggering if the screen recomposes
+            // for other reasons while groupCreationSuccessful is still true.
+            chatRoomsViewModel.resetGroupCreationStatus()
+        }
+    }
+
     if (showCreateGroupDialog) {
         Dialog(onDismissRequest = {
             showCreateGroupDialog = false
-            chatRoomsViewModel.clearCreateGroupError() // Clear error on dismiss
+            groupName = ""
+            userName = ""
+            chatRoomsViewModel.resetGroupCreationStatus()
         }) {
             Card(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                ),
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
                 Column(
@@ -129,12 +160,11 @@ fun ChatRoomListScreen(
                             groupName = it
                             groupNameError = it.isEmpty()
                             if (groupNameError) {
-                                chatRoomsViewModel.clearCreateGroupError()
+                                chatRoomsViewModel.resetGroupCreationStatus()
                             }
                         },
                         label = { Text(stringResource(R.string.enter_group_name)) },
-                        modifier = Modifier
-                            .fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         isError = groupNameError || createGroupError != null,
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -143,7 +173,6 @@ fun ChatRoomListScreen(
                             errorBorderColor = Color.Red
                         )
                     )
-                    // Show validation error or backend error
                     if (groupNameError) {
                         Text(
                             text = stringResource(R.string.error_group_name_empty),
@@ -167,8 +196,7 @@ fun ChatRoomListScreen(
                             userNameError = it.isEmpty()
                         },
                         label = { Text(stringResource(R.string.enter_your_name)) },
-                        modifier = Modifier
-                            .fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         isError = userNameError,
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -191,9 +219,7 @@ fun ChatRoomListScreen(
                             groupNameError = groupName.isEmpty()
                             userNameError = userName.isEmpty()
                             if (!groupNameError && !userNameError) {
-                                chatRoomsViewModel
-                                    .createChatRoom(groupName, userName, currentUserId)
-                                showCreateGroupDialog = false
+                                chatRoomsViewModel.createChatRoom(groupName, userName, currentUserId)
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -252,9 +278,9 @@ fun ChatRoomListScreen(
                 .background(Color.White),
             contentPadding = PaddingValues(top = 8.dp)
         ) {
-            items(chatRooms) { ChatRoomEntity ->
+            items(chatRooms) { chatRoomEntity ->
                 ChatRoomItem(
-                    chatRoom = ChatRoomEntity,
+                    chatRoom = chatRoomEntity,
                     onChatRoomClick = onChatRoomClick,
                     onArchive = onArchive,
                     onDelete = onDelete,

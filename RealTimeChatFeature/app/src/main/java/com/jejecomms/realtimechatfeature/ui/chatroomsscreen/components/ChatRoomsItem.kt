@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,9 +48,6 @@ import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.ui.theme.White
 import com.jejecomms.realtimechatfeature.utils.DateUtils.formatTime
 
-/**
- * Composable function for a chat room item with swipe-to-dismiss and mute/unmute functionality.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatRoomItem(
@@ -60,6 +58,9 @@ fun ChatRoomItem(
     onToggleMute: (ChatRoomEntity) -> Unit,
 ) {
     var isRevealed by remember { mutableStateOf(false) }
+
+    // State to handle the UI for mute/unmute icon locally
+    var isMutedUiState by remember { mutableStateOf(chatRoom.isMuted) }
 
     SwipeableItemWithActions(
         isRevealed = isRevealed,
@@ -114,7 +115,7 @@ fun ChatRoomItem(
         ) {
             Row(
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 4.dp)
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -145,7 +146,6 @@ fun ChatRoomItem(
                         color = Color.DarkGray,
                         fontSize = 14.sp
                     )
-
                     Text(
                         text = chatRoom.lastMessage.toString(),
                         style = MaterialTheme.typography.bodyMedium,
@@ -154,10 +154,10 @@ fun ChatRoomItem(
                         color = Color.DarkGray,
                         fontSize = 12.sp
                     )
-
                 }
                 Column(
-                    horizontalAlignment = Alignment.End
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Text(
                         text = formatTime(chatRoom.lastTimestamp),
@@ -165,19 +165,22 @@ fun ChatRoomItem(
                         color = Color.DarkGray,
                         fontSize = 12.sp
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     if (chatRoom.unreadCount > 0) {
                         UnreadCountBadge(count = chatRoom.unreadCount)
                     }
                 }
-                Spacer(modifier = Modifier.width(16.dp))
-                IconButton(onClick = { onToggleMute(chatRoom) }) {
+                // Mute/Unmute icon on the far right, with a local state
+                IconButton(onClick = {
+                    isMutedUiState = !isMutedUiState // Toggle local UI state first
+                    onToggleMute(chatRoom) // Then call the logic to update the database
+                }) {
                     Icon(
-                        imageVector = if (chatRoom.isMuted) Icons.Default.NotificationsOff else Icons.Default.Notifications,
-                        contentDescription = if (chatRoom.isMuted) stringResource(R.string.unmute) else stringResource(
+                        imageVector = if (isMutedUiState) Icons.Default.NotificationsOff else Icons.Default.Notifications,
+                        contentDescription = if (isMutedUiState) stringResource(R.string.unmute) else stringResource(
                             R.string.mute
                         ),
-                        tint = if (chatRoom.isMuted) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (isMutedUiState) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

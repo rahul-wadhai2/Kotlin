@@ -27,4 +27,6 @@
     <string name="room_is_no_longer_available">This room is no longer available.</string>
     <string name="btn_exit_room">Exit this room</string>
     <string name="btn_dialog_text">Create Room</string>
+    <string name="unknown_error">An unknown error occurred.</string>
+    <string name="group_created_successful">Group created successfully!</string>
 </resources>

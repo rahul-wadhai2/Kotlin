@@ -39,6 +39,9 @@ class ChatRoomsViewModel(
      */
     val createGroupError: StateFlow<String?> = _createGroupError.asStateFlow()
 
+    private val _groupCreationSuccessful = MutableStateFlow(false)
+    val groupCreationSuccessful: StateFlow<Boolean> = _groupCreationSuccessful.asStateFlow()
+
     /**
      * Job for the Firestore listener for rooms.
      */
@@ -92,20 +95,28 @@ class ChatRoomsViewModel(
      */
     fun createChatRoom(groupName: String, userName: String, currentUserId: String) {
         viewModelScope.launch {
-            val isSuccess = chatRoomsRepository.createChatRoom(groupName, userName, currentUserId)
-            if (!isSuccess) {
-                _createGroupError.value =
-                    application.getString(R.string.create_group_error_already_exit)
-            } else {
-                _createGroupError.value = null
+            try {
+                val isSuccess = chatRoomsRepository.createChatRoom(groupName, userName, currentUserId)
+                if (isSuccess) {
+                    _groupCreationSuccessful.value = true
+                    _createGroupError.value = null
+                } else {
+                    _createGroupError.value =
+                        application.getString(R.string.create_group_error_already_exit)
+                    _groupCreationSuccessful.value = false
+                }
+            } catch (e: Exception) {
+                _createGroupError.value = e.message ?: application.getString(R.string.unknown_error)
+                _groupCreationSuccessful.value = false
             }
         }
     }
 
     /**
-     * Clears the create group error message.
+     * Clears the create group status after a successful message.
      */
-    fun clearCreateGroupError() {
+    fun resetGroupCreationStatus() {
+        _groupCreationSuccessful.value = false
         _createGroupError.value = null
     }
 
