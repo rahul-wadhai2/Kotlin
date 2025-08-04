@@ -39,7 +39,14 @@ class ChatRoomsViewModel(
      */
     val createGroupError: StateFlow<String?> = _createGroupError.asStateFlow()
 
+    /**
+     * State flow to track the success of group creation.
+     */
     private val _groupCreationSuccessful = MutableStateFlow(false)
+
+    /**
+     * Exposes the success state as a StateFlow.
+     */
     val groupCreationSuccessful: StateFlow<Boolean> = _groupCreationSuccessful.asStateFlow()
 
     /**

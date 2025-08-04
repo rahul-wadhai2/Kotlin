@@ -63,7 +63,7 @@ class ChatRoomViewModel(
     /**
      * State flow for the roomId check when entering in room.
      */
-    private val _isRoomExists = MutableStateFlow<Boolean?>(null)
+    private val _isRoomExists = MutableStateFlow(false)
 
     /**
      * Exposes the boolean is roomId exists as a StateFlow.
@@ -136,7 +136,7 @@ class ChatRoomViewModel(
             }
         }
 
-        _isRoomExists.value = null
+        _isRoomExists.value = false
         checkIfRoomExists(roomId)
     }
 

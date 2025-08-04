@@ -97,9 +97,6 @@ fun ChatRoomListScreen(
      */
     var userNameError by remember { mutableStateOf(false) }
 
-    // State variable to hold the success message
-    var successMessage by remember { mutableStateOf<String?>(null) }
-
     /**
      * State indicating the success of group creation.
      */
@@ -110,6 +107,9 @@ fun ChatRoomListScreen(
      */
     val createGroupError by chatRoomsViewModel.createGroupError.collectAsStateWithLifecycle()
 
+    /**
+     * Context for the composable.
+     */
     val context = LocalContext.current
 
     //This LaunchedEffect reacts to the success state.
