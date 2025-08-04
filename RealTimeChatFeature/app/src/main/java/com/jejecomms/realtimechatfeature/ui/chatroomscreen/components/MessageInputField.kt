@@ -1,4 +1,4 @@
-package com.jejecomms.realtimechatfeature.ui.chatscreen.components
+package com.jejecomms.realtimechatfeature.ui.chatroomscreen.components
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize

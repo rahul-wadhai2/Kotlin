@@ -1,4 +1,4 @@
-package com.jejecomms.realtimechatfeature.ui.chatscreen
+package com.jejecomms.realtimechatfeature.ui.chatroomscreen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -48,10 +48,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
-import com.jejecomms.realtimechatfeature.ui.chatscreen.components.DateSeparator
-import com.jejecomms.realtimechatfeature.ui.chatscreen.components.MessageBubble
-import com.jejecomms.realtimechatfeature.ui.chatscreen.components.MessageInputField
-import com.jejecomms.realtimechatfeature.ui.chatscreen.components.SystemMessage
+import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.DateSeparator
+import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.MessageBubble
+import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.MessageInputField
+import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.SystemMessage
 import com.jejecomms.realtimechatfeature.ui.theme.DarkGreenTheme
 import com.jejecomms.realtimechatfeature.ui.theme.LightYellow
 import com.jejecomms.realtimechatfeature.ui.theme.White
@@ -63,7 +63,7 @@ import com.jejecomms.realtimechatfeature.utils.DateUtils
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
-    chatViewModel: ChatScreenViewModel,
+    chatRoomViewModel: ChatRoomViewModel,
     currentSenderId: String,
     selectedChatRoom: ChatRoomEntity?,
     onBackClick: () -> Unit
@@ -84,13 +84,14 @@ fun ChatScreen(
      * Initialize the chat room when the screen is first composed.
      */
     LaunchedEffect(roomId) {
-        chatViewModel.initializeChatRoom(roomId)
+        chatRoomViewModel.startDataCollectionAndSync(roomId)
+        chatRoomViewModel.updateLastReadTimestamp()
     }
 
     /**
      * Collects the UI state from the ViewModel.
      */
-    val uiState by chatViewModel.uiState.collectAsState()
+    val uiState by chatRoomViewModel.uiState.collectAsState()
 
     /**
      * Creates a TopAppBar scroll behavior.
@@ -110,7 +111,7 @@ fun ChatScreen(
     /**
      * State variable for the check roomId.
      */
-    val isRoomIdExists by chatViewModel.isRoomExists.collectAsStateWithLifecycle()
+    val isRoomIdExists by chatRoomViewModel.isRoomExists.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         showInputField = true
@@ -180,7 +181,7 @@ fun ChatScreen(
                 ) {
                     MessageInputField(
                         onSendMessage = { message ->
-                            chatViewModel.sendMessage(message, currentSenderId, roomId)
+                            chatRoomViewModel.sendMessage(message, currentSenderId, roomId)
                         },
                         modifier = Modifier
                             .navigationBarsPadding()
@@ -235,7 +236,7 @@ fun ChatScreen(
                                         message = message,
                                         isCurrentUser = message.senderId == currentSenderId,
                                         onRetryClick = { msgToRetry ->
-                                            chatViewModel.retrySendMessage(msgToRetry, roomId)
+                                            chatRoomViewModel.retrySendMessage(msgToRetry, roomId)
                                         }
                                     )
                                 }

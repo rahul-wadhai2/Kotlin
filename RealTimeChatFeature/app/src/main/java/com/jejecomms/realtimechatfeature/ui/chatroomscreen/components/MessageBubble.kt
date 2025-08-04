@@ -1,4 +1,4 @@
-package com.jejecomms.realtimechatfeature.ui.chatscreen.components
+package com.jejecomms.realtimechatfeature.ui.chatroomscreen.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

@@ -1,4 +1,4 @@
-package com.jejecomms.realtimechatfeature.ui.chatroomlist.components
+package com.jejecomms.realtimechatfeature.ui.chatroomsscreen.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures

@@ -1,11 +1,11 @@
-package com.jejecomms.realtimechatfeature.ui.chatscreen
+package com.jejecomms.realtimechatfeature.ui.chatroomscreen
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomMemberEntity
-import com.jejecomms.realtimechatfeature.data.repository.ChatRepository
+import com.jejecomms.realtimechatfeature.data.repository.ChatRoomRepository
 import com.jejecomms.realtimechatfeature.utils.Constants.KEY_SENDER_ID
 import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME
 import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME_PREF
@@ -21,12 +21,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel for the chat screen. It interacts with the ChatRepository to send messages
+ * ViewModel for the chat room screen. It interacts with the [ChatRoomRepository] to send messages
  * and manages the UI state related to messages.
  */
-class ChatScreenViewModel(
-    private val chatRepository: ChatRepository,
+class ChatRoomViewModel(
+    private val chatRoomRepository: ChatRoomRepository,
     application: Application,
+    private val roomId: String
 ) : AndroidViewModel(application) {
 
     /**
@@ -69,36 +70,47 @@ class ChatScreenViewModel(
      */
     val isRoomExists: StateFlow<Boolean?> = _isRoomExists.asStateFlow()
 
-    /**
-     * Initializes the chat room by starting to listen for messages and members.
-     * This should be called whenever the user navigates to a new chat screen.
-     *
-     * @param roomId The ID of the chat room to initialize.
-     */
-    fun initializeChatRoom(roomId: String) {
-        _isRoomExists.value = null
-        // Cancel any previous jobs to prevent conflicts
-        firestoreMessagesListenerJob?.cancel()
-        localDataMessagesCollectorJob?.cancel()
+    init {
+        checkIfUserHasJoined()
+        updateLastReadTimestamp()
+    }
 
-        // Launch a separate coroutine to listen to Firestore changes and update the local DB.
-        // This is a long-running job that should be active as long as the screen is.
+    /**
+     * Checks if the user has joined the room and joins them if not.
+     */
+    private fun checkIfUserHasJoined() {
+        viewModelScope.launch {
+            currentSenderId?.let {
+                val senderName = SharedPreferencesUtil.getString(SENDER_NAME_PREF) ?: SENDER_NAME
+                if (!chatRoomRepository.hasJoinTheGroup(roomId, it)) {
+                    joinMemberToRoom(it, senderName, roomId)
+                }
+            }
+        }
+    }
+
+    /**
+     * Encapsulates the long-running coroutines for data synchronization.
+     */
+    fun startDataCollectionAndSync(roomId: String) {
+        // Cancel any previous jobs and start the Firestore listener
+        firestoreMessagesListenerJob?.cancel()
         firestoreMessagesListenerJob = viewModelScope.launch {
             try {
-                chatRepository.startFirestoreMessageListener(roomId).collect { remoteMessages ->
-                    chatRepository.insertMessages(remoteMessages)
+                chatRoomRepository.startFirestoreMessageListener(roomId).collect { remoteMessages ->
+                    chatRoomRepository.insertMessages(remoteMessages)
                 }
             } catch (_: Exception) { }
         }
 
-        // Launch a separate coroutine to combine local data and update the UI state.
-        // This will trigger whenever the local database changes (which is updated by the job above).
+        // Cancel any previous jobs and start the local database collector
+        localDataMessagesCollectorJob?.cancel()
         localDataMessagesCollectorJob = viewModelScope.launch {
             try {
                 _uiState.value = ChatScreenState.Loading
                 combine(
-                    chatRepository.getLocalMessages(roomId),
-                    chatRepository.getGroupMembers(roomId)
+                    chatRoomRepository.getLocalMessages(roomId),
+                    chatRoomRepository.getGroupMembers(roomId)
                 ) { chatMessages, groupMembers ->
                     val joinMessages = groupMembers.map { member ->
                         val joinMessageText = if (member.senderId == currentSenderId) {
@@ -124,22 +136,8 @@ class ChatScreenViewModel(
             }
         }
 
-        // Check if the user has joined the room. This can run independently.
-        viewModelScope.launch {
-            currentSenderId?.let {
-                val senderName = SharedPreferencesUtil.getString(SENDER_NAME_PREF) ?: SENDER_NAME
-                if (!chatRepository.hasJoinTheGroup(roomId, it)) {
-                    joinMemberToRoom(it, senderName, roomId)
-                }
-            }
-        }
-
+        _isRoomExists.value = null
         checkIfRoomExists(roomId)
-
-        // Launch a new coroutine to update the last read timestamp
-//        viewModelScope.launch {
-//            chatRepository.updateLastReadTimestamp(roomId, System.currentTimeMillis())
-//        }
     }
 
     /**
@@ -161,7 +159,7 @@ class ChatScreenViewModel(
             )
 
             viewModelScope.launch {
-                chatRepository.sendMessage(roomId, newMessage)
+                chatRoomRepository.sendMessage(roomId, newMessage)
             }
         }
     }
@@ -174,7 +172,7 @@ class ChatScreenViewModel(
      */
     fun retrySendMessage(message: ChatMessageEntity, roomId: String) {
         viewModelScope.launch {
-            chatRepository.retrySingleMessage(roomId, message)
+            chatRoomRepository.retrySingleMessage(roomId, message)
         }
     }
 
@@ -197,7 +195,16 @@ class ChatScreenViewModel(
         )
 
         viewModelScope.launch {
-            chatRepository.joinRoom(roomId, joinData)
+            chatRoomRepository.joinRoom(roomId, joinData)
+        }
+    }
+
+    /**
+     * Updates the last read timestamp for the room.
+     */
+    fun updateLastReadTimestamp() {
+        viewModelScope.launch {
+            chatRoomRepository.updateLastReadTimestamp(roomId, System.currentTimeMillis())
         }
     }
 
@@ -206,7 +213,7 @@ class ChatScreenViewModel(
      */
     fun checkIfRoomExists(roomId: String) {
         viewModelScope.launch {
-            _isRoomExists.value = chatRepository.checkIfRoomIdExists(roomId)
+            _isRoomExists.value = chatRoomRepository.checkIfRoomIdExists(roomId)
         }
     }
 }

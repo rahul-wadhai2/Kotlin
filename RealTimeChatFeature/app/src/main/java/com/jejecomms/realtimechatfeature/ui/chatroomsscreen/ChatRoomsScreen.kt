@@ -1,4 +1,4 @@
-package com.jejecomms.realtimechatfeature.ui.chatroomlist
+package com.jejecomms.realtimechatfeature.ui.chatroomsscreen
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -50,13 +50,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
-import com.jejecomms.realtimechatfeature.ui.chatroomlist.components.ChatRoomItem
+import com.jejecomms.realtimechatfeature.ui.chatroomsscreen.components.ChatRoomItem
 import com.jejecomms.realtimechatfeature.ui.theme.DarkGreenTheme
 import com.jejecomms.realtimechatfeature.ui.theme.LightGreen
 import com.jejecomms.realtimechatfeature.ui.theme.White
 
 /**
- * Composable function for the chat room list screen.
+ * Composable function for the chat rooms screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,7 +66,7 @@ fun ChatRoomListScreen(
     onToggleMute: (ChatRoomEntity) -> Unit,
     onArchive: (ChatRoomEntity) -> Unit,
     onDelete: (ChatRoomEntity) -> Unit,
-    viewModel: ChatRoomListViewModel = viewModel(),
+    chatRoomsViewModel: ChatRoomsViewModel = viewModel(),
     currentUserId: String
 ) {
     /**
@@ -97,12 +97,12 @@ fun ChatRoomListScreen(
     /**
      * State variable for the create group error.
      */
-    val createGroupError by viewModel.createGroupError.collectAsStateWithLifecycle()
+    val createGroupError by chatRoomsViewModel.createGroupError.collectAsStateWithLifecycle()
 
     if (showCreateGroupDialog) {
         Dialog(onDismissRequest = {
             showCreateGroupDialog = false
-            viewModel.clearCreateGroupError() // Clear error on dismiss
+            chatRoomsViewModel.clearCreateGroupError() // Clear error on dismiss
         }) {
             Card(
                 modifier = Modifier
@@ -129,7 +129,7 @@ fun ChatRoomListScreen(
                             groupName = it
                             groupNameError = it.isEmpty()
                             if (groupNameError) {
-                                viewModel.clearCreateGroupError()
+                                chatRoomsViewModel.clearCreateGroupError()
                             }
                         },
                         label = { Text(stringResource(R.string.enter_group_name)) },
@@ -191,7 +191,8 @@ fun ChatRoomListScreen(
                             groupNameError = groupName.isEmpty()
                             userNameError = userName.isEmpty()
                             if (!groupNameError && !userNameError) {
-                                viewModel.createChatRoom(groupName, userName, currentUserId)
+                                chatRoomsViewModel
+                                    .createChatRoom(groupName, userName, currentUserId)
                                 showCreateGroupDialog = false
                             }
                         },

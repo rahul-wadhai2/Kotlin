@@ -59,7 +59,7 @@ interface MessageDao {
     /**
      * Inserts a new chat room into the database.
      */
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertChatRoom(chatRoom: ChatRoomEntity)
 
     /**
@@ -92,29 +92,51 @@ interface MessageDao {
     @Query("DELETE FROM $CHAT_ROOM WHERE roomId = :roomId")
     suspend fun deleteChatRoom(roomId: String)
 
+    /**
+     * Get a flow of all chat rooms from the local Room database, including a count
+     * of unread messages for each room.
+     */
+    @Query("""
+        SELECT 
+            T1.*,
+            SUM(CASE WHEN T2.senderId != :currentUserId AND T2.timestamp > T1.lastReadTimestamp THEN 1 ELSE 0 END) AS unreadCount
+        FROM $CHAT_ROOM AS T1
+        LEFT JOIN $MESSAGES AS T2 ON T1.roomId = T2.roomId
+        WHERE T1.isDeletedLocally = 0
+        GROUP BY T1.roomId
+        ORDER BY T1.lastTimestamp DESC
+    """)
+    fun getAllChatRoomsWithUnreadCount(currentUserId: String): Flow<List<ChatRoomEntity>>
 
-//    /**
-//     * Query to get all chat rooms with their unread count.
-//     */
-//    @Query("""
-//        SELECT
-//            r.*,
-//            (SELECT COUNT(m.id) FROM messages m WHERE m.roomId = r.roomId AND m.timestamp > r.lastReadTimestamp) AS unreadCount
-//        FROM chat_room r
-//        WHERE r.isArchived = 0
-//        ORDER BY r.lastTimestamp DESC
-//    """)
-//    fun getAllChatRoomsWithUnreadCount(): Flow<List<ChatRoomEntity>>
-//
-//    /**
-//     * Query to count unread messages based on lastReadTimestamp.
-//     */
-//    @Query("SELECT COUNT(*) FROM $MESSAGES WHERE roomId = :roomId AND timestamp > :lastReadTimestamp")
-//    fun getUnreadMessageCount(roomId: String, lastReadTimestamp: Long): Flow<Int>
-//
-//    /**
-//     * Query to update the last read timestamp for a specific chat room.
-//     */
-//    @Query("UPDATE $CHAT_ROOM SET lastReadTimestamp = :timestamp WHERE roomId = :roomId")
-//    suspend fun updateLastReadTimestamp(roomId: String, timestamp: Long)
+    /**
+     * Query to count unread messages based on lastReadTimestamp.
+     */
+    @Query("SELECT COUNT(*) FROM $MESSAGES WHERE roomId = :roomId AND timestamp > :lastReadTimestamp")
+    fun getUnreadMessageCount(roomId: String, lastReadTimestamp: Long): Flow<Int>
+
+    /**
+     * Updates the last read timestamp for a specific chat room.
+     * This is crucial for resetting the unread message count.
+     */
+    @Query("UPDATE $CHAT_ROOM SET lastReadTimestamp = :timestamp WHERE roomId = :roomId")
+    suspend fun updateLastReadTimestamp(roomId: String, timestamp: Long)
+
+    /**
+     * Get a single chat room by its ID.
+     */
+    @Query("SELECT * FROM $CHAT_ROOM WHERE roomId = :roomId LIMIT 1")
+    suspend fun getChatRoomById(roomId: String): ChatRoomEntity?
+
+    /**
+     * Updates the last read timestamp for ALL chat rooms to the current time.
+     * This is a one-time operation to handle the initial app launch.
+     */
+    @Query("UPDATE $CHAT_ROOM SET lastReadTimestamp = :timestamp")
+    suspend fun updateAllLastReadTimestamps(timestamp: Long)
+
+    /**
+     * Gets the minimum lastReadTimestamp of all chat rooms.
+     */
+    @Query("SELECT MIN(lastReadTimestamp) FROM $CHAT_ROOM")
+    suspend fun getMinLastReadTimestamp(): Long?
 }

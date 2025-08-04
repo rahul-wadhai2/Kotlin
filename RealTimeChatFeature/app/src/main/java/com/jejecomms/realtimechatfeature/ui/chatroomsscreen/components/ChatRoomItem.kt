@@ -1,4 +1,4 @@
-package com.jejecomms.realtimechatfeature.ui.chatroomlist.components
+package com.jejecomms.realtimechatfeature.ui.chatroomsscreen.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Badge
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,13 +39,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
-import com.jejecomms.realtimechatfeature.ui.theme.LightGreen
 import com.jejecomms.realtimechatfeature.ui.theme.White
-import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME
 import com.jejecomms.realtimechatfeature.utils.DateUtils.formatTime
 
 /**
@@ -141,6 +139,8 @@ fun ChatRoomItem(
                 ) {
                     Text(
                         text = chatRoom.groupName.toString(),
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.DarkGray,
                         fontSize = 14.sp
@@ -149,7 +149,8 @@ fun ChatRoomItem(
                     Text(
                         text = chatRoom.lastMessage.toString(),
                         style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 2,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         color = Color.DarkGray,
                         fontSize = 12.sp
                     )
@@ -166,12 +167,7 @@ fun ChatRoomItem(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     if (chatRoom.unreadCount > 0) {
-                        Badge(containerColor = LightGreen) {
-                            Text(
-                                text = chatRoom.unreadCount.toString(),
-                                color = Color.White
-                            )
-                        }
+                        UnreadCountBadge(count = chatRoom.unreadCount)
                     }
                 }
                 Spacer(modifier = Modifier.width(16.dp))

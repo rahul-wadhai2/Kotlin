@@ -15,16 +15,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import com.jejecomms.realtimechatfeature.ChatApplication
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
-import com.jejecomms.realtimechatfeature.data.repository.ChatRepository
-import com.jejecomms.realtimechatfeature.ui.chatroomlist.ChatRoomListScreen
-import com.jejecomms.realtimechatfeature.ui.chatroomlist.ChatRoomListViewModel
-import com.jejecomms.realtimechatfeature.ui.chatroomlist.ChatRoomListViewModelFactory
-import com.jejecomms.realtimechatfeature.ui.chatscreen.ChatScreen
-import com.jejecomms.realtimechatfeature.ui.chatscreen.ChatScreenViewModel
-import com.jejecomms.realtimechatfeature.ui.chatscreen.ChatViewModelFactory
+import com.jejecomms.realtimechatfeature.data.repository.ChatRoomRepository
+import com.jejecomms.realtimechatfeature.data.repository.ChatRoomsRepository
+import com.jejecomms.realtimechatfeature.ui.chatroomsscreen.ChatRoomListScreen
+import com.jejecomms.realtimechatfeature.ui.chatroomsscreen.ChatRoomsViewModel
+import com.jejecomms.realtimechatfeature.ui.chatroomsscreen.ChatRoomsViewModelFactory
+import com.jejecomms.realtimechatfeature.ui.chatroomscreen.ChatRoomViewModel
+import com.jejecomms.realtimechatfeature.ui.chatroomscreen.ChatRoomViewModelFactory
+import com.jejecomms.realtimechatfeature.ui.chatroomscreen.ChatScreen
 import com.jejecomms.realtimechatfeature.ui.theme.RealTimeChatFeatureTheme
 import com.jejecomms.realtimechatfeature.utils.Constants.KEY_SENDER_ID
 import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
@@ -39,27 +41,25 @@ class ChatActivity : ComponentActivity() {
      */
     private val firestoreDb by lazy { FirebaseFirestore.getInstance() }
 
-    private val chatRepository by lazy {
+    private val chatRoomRepository by lazy {
         val application = application as ChatApplication
         val applicationScope = application.applicationScope
         val messageDao = application.messageDao
-        ChatRepository(firestoreDb, messageDao, applicationScope, this)
+        ChatRoomRepository(firestoreDb, messageDao, applicationScope)
+    }
+
+    private val chatRoomsRepository by lazy {
+        val application = application as ChatApplication
+        val messageDao = application.messageDao
+        ChatRoomsRepository(firestoreDb, messageDao, this)
     }
 
     /**
-     * Initialize the ChatScreenViewModel using viewModels delegate.
-     * We pass a ChatViewModelFactory to provide the ChatRepository and Application dependencies.
+     * Initialize the ChatRoomsViewModel using viewModels delegate.
+     * We pass a ChatRoomsViewModelFactory to provide the ChatRoomsRepository.
      */
-    private val chatScreenViewModel: ChatScreenViewModel by viewModels {
-        ChatViewModelFactory(chatRepository, application as ChatApplication)
-    }
-
-    /**
-     * Initialize the ChatRoomListViewModel using viewModels delegate.
-     * We pass a ChatRoomListViewModelFactory to provide the ChatRepository.
-     */
-    private val chatRoomListViewModel: ChatRoomListViewModel by viewModels {
-        ChatRoomListViewModelFactory(chatRepository, application as ChatApplication)
+    private val chatRoomsViewModel: ChatRoomsViewModel by viewModels {
+        ChatRoomsViewModelFactory(chatRoomsRepository, application as ChatApplication)
     }
 
     /**
@@ -86,7 +86,7 @@ class ChatActivity : ComponentActivity() {
                 ) {
                     var selectedChatRoom by remember { mutableStateOf<ChatRoomEntity?>(null) }
                     var toogleChatRoom by remember { mutableStateOf<ChatRoomEntity?>(null) }
-                    val chatRooms by chatRoomListViewModel.chatRooms.collectAsState()
+                    val chatRooms by chatRoomsViewModel.chatRooms.collectAsState()
 
                     if (selectedChatRoom == null) {
                         ChatRoomListScreen(
@@ -102,15 +102,23 @@ class ChatActivity : ComponentActivity() {
                                 // chatRoomListViewModel.archiveChatRoom(chatRoom)
                             },
                             onDelete = { chatRoom ->
-                                chatRoomListViewModel.onDeleteChatRoom(chatRoom.roomId.toString())
+                                chatRoomsViewModel.onDeleteChatRoom(chatRoom.roomId.toString())
                             },
-                            viewModel = chatRoomListViewModel,
+                            chatRoomsViewModel = chatRoomsViewModel,
                             currentUserId = currentSenderId
                         )
                     } else {
-                        // Pass the selected chat room and a back navigation callback to the ChatScreen
+
+                        val chatRoomViewModel: ChatRoomViewModel = viewModel(
+                            factory = ChatRoomViewModelFactory(
+                                chatRoomRepository,
+                                application as ChatApplication,
+                                selectedChatRoom!!.roomId.toString()
+                            )
+                        )
+
                         ChatScreen(
-                            chatViewModel = chatScreenViewModel,
+                            chatRoomViewModel = chatRoomViewModel,
                             currentSenderId = currentSenderId,
                             selectedChatRoom = selectedChatRoom,
                             onBackClick = { selectedChatRoom = null }

@@ -1,14 +1,20 @@
 package com.jejecomms.realtimechatfeature
 
 import android.app.Application
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequest
+import androidx.work.WorkManager
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.jejecomms.realtimechatfeature.data.local.ChatDatabase
-import com.jejecomms.realtimechatfeature.data.repository.ChatRepository
+import com.jejecomms.realtimechatfeature.data.repository.ChatRoomRepository
+import com.jejecomms.realtimechatfeature.data.repository.ChatRoomsRepository
 import com.jejecomms.realtimechatfeature.utils.NetworkMonitor
 import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
+import com.jejecomms.realtimechatfeature.workers.TimestampInitializationWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import java.util.concurrent.TimeUnit
 
 /**
  * Chat application class for the chat feature.
@@ -33,10 +39,10 @@ class ChatApplication : Application() {
     private val firebasFireStore by lazy { FirebaseFirestore.getInstance() }
 
     /**
-     * Expose the ChatRepository instance.
+     * Expose the ChatRoomRepository instance.
      */
-    val chatRepository by lazy {
-        ChatRepository(firebasFireStore, messageDao, applicationScope, this)
+    val chatRoomsRepository by lazy {
+        ChatRoomsRepository(firebasFireStore, messageDao, this)
     }
 
     override fun onCreate() {
@@ -47,5 +53,16 @@ class ChatApplication : Application() {
         SharedPreferencesUtil.init(applicationContext)
         // Initialize NetworkMonitor
         NetworkMonitor.init(applicationContext)
+
+        // Enqueue the worker to initialize timestamps on app launch
+        val workRequest = OneTimeWorkRequest.Builder(TimestampInitializationWorker::class.java)
+            .setInitialDelay(1, TimeUnit.SECONDS)
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniqueWork(
+            "TimestampInitializationWork",
+            ExistingWorkPolicy.KEEP,
+            workRequest
+        )
     }
 }
