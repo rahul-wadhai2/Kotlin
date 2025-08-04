@@ -42,4 +42,6 @@ object Constants {
 
     /*************************Firebase Collection*********************************/
     const val CHAT_ROOMS = "chatrooms"
+    const val IMAGES = "images"
+    const val IMAGE_EXTENSION = ".jpg"
 }

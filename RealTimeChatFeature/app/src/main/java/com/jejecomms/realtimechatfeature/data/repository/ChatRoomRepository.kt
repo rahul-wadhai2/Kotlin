@@ -1,14 +1,20 @@
 package com.jejecomms.realtimechatfeature.data.repository
 
+import android.net.Uri
+import androidx.core.net.toUri
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.snapshots
+import com.google.firebase.storage.FirebaseStorage
 import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomMemberEntity
 import com.jejecomms.realtimechatfeature.data.local.MessageDao
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
+import com.jejecomms.realtimechatfeature.data.model.MessageType
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOMS
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
+import com.jejecomms.realtimechatfeature.utils.Constants.IMAGES
+import com.jejecomms.realtimechatfeature.utils.Constants.IMAGE_EXTENSION
 import com.jejecomms.realtimechatfeature.utils.Constants.MESSAGES
 import com.jejecomms.realtimechatfeature.utils.NetworkMonitor
 import kotlinx.coroutines.CoroutineScope
@@ -29,6 +35,7 @@ class ChatRoomRepository(
     private val firebasFireStore: FirebaseFirestore,
     private val messageDao: MessageDao,
     private val applicationScope: CoroutineScope,
+    private val firebaseStorage: FirebaseStorage,
 ) {
 
     /**
@@ -123,13 +130,34 @@ class ChatRoomRepository(
      * @param message The ChatMessage object to be retried.
      */
     suspend fun retrySingleMessage(roomId: String, message: ChatMessageEntity) {
+        // First, update the local message to 'SENDING' status
+        val sendingMessage = message.copy(status = MessageStatus.SENDING)
+        messageDao.updateMessage(sendingMessage)
+
         try {
-            //Immediately update the local message status to SENDING.
-            messageDao.updateMessage(message.copy(status = MessageStatus.SENDING))
-        } catch (_: Exception) {
-            messageDao.updateMessage(message.copy(status = MessageStatus.FAILED))
+            // Check message type and handle accordingly
+            when (message.messageType) {
+                MessageType.TEXT -> {
+                   sendAndUpadteMessage(roomId,sendingMessage)
+                }
+                MessageType.IMAGE -> {
+                    // Re-upload image and re-send the message
+                    val imageUri = message.imageUrl?.toUri()
+                    val storageRef = firebaseStorage.reference
+                        .child("$CHAT_ROOMS/$roomId/$IMAGES/${message.id}$IMAGE_EXTENSION")
+
+                    // Upload the file and get the download URL
+                    val uploadTask = imageUri?.let { storageRef.putFile(it) }?.await()
+                    val imageUrl = uploadTask?.storage?.downloadUrl?.await().toString()
+                    val messageWithUrl = sendingMessage.copy(imageUrl = imageUrl)
+                    sendAndUpadteMessage(roomId,messageWithUrl)
+                }
+            }
+        } catch (e: Exception) {
+            println("On retry: "+e.printStackTrace())
+            // On failure, update the status back to FAILED
+            messageDao.updateMessage(sendingMessage.copy(status = MessageStatus.FAILED))
         }
-        sendAndUpadteMessage(roomId, message)
     }
 
     /**
@@ -250,6 +278,52 @@ class ChatRoomRepository(
     suspend fun updateLastReadTimestamp(roomId: String, timestamp: Long) {
         withContext(Dispatchers.IO) {
             messageDao.updateLastReadTimestamp(roomId, timestamp)
+        }
+    }
+
+    /**
+     * Sends an image message by uploading the image to Firebase Storage first.
+     */
+    suspend fun sendImageMessage(
+        roomId: String,
+        message: ChatMessageEntity,
+        imageUri: Uri,
+        onProgress: (Int) -> Unit,
+    ) {
+        //Insert the initial message into the local DB with 'SENDING' status and local URI
+        messageDao.insertMessage(message)
+        val storageRef = firebaseStorage.reference
+        val imageRef = storageRef.child("$CHAT_ROOMS/$roomId/$IMAGES/${message.id}$IMAGE_EXTENSION")
+
+        try {
+            //Upload the image to Firebase Storage
+            val uploadTask = imageRef.putFile(imageUri)
+
+            // Monitor upload progress
+            uploadTask.addOnProgressListener { taskSnapshot ->
+                val progress = (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount).toInt()
+                onProgress(progress)
+            }.await()
+
+            //Get the persistent download URL
+            val downloadUrl = imageRef.downloadUrl.await().toString()
+
+            //Create a new message with the persistent URL and SENT status
+            val sentMessage = message.copy(
+                text = "",
+                imageUrl = downloadUrl,
+                status = MessageStatus.SENT,
+                messageType = MessageType.IMAGE
+            )
+
+            //Update the local database and send to Firestore
+            messageDao.updateMessage(sentMessage)
+            sendAndUpadteMessage(roomId, sentMessage)
+
+        } catch (e: Exception) {
+            //On failure, update the message status to FAILED, but PRESERVE the original local URI
+            //to allow the image to be displayed.
+            messageDao.updateMessage(message.copy(status = MessageStatus.FAILED))
         }
     }
 }

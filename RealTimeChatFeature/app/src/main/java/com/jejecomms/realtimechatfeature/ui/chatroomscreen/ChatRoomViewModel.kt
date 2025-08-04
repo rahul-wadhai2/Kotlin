@@ -1,10 +1,13 @@
 package com.jejecomms.realtimechatfeature.ui.chatroomscreen
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomMemberEntity
+import com.jejecomms.realtimechatfeature.data.model.MessageStatus
+import com.jejecomms.realtimechatfeature.data.model.MessageType
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomRepository
 import com.jejecomms.realtimechatfeature.utils.Constants.KEY_SENDER_ID
 import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME
@@ -63,12 +66,22 @@ class ChatRoomViewModel(
     /**
      * State flow for the roomId check when entering in room.
      */
-    private val _isRoomExists = MutableStateFlow(false)
+    private val _isRoomExists =  MutableStateFlow<Boolean?>(null)
 
     /**
      * Exposes the boolean is roomId exists as a StateFlow.
      */
     val isRoomExists: StateFlow<Boolean?> = _isRoomExists.asStateFlow()
+
+    /**
+     * State flow for image upload progress
+     */
+    private val _imageUploadProgress = MutableStateFlow(0)
+
+    /**
+     * Exposes the image upload progress as a StateFlow
+     */
+    val imageUploadProgress: StateFlow<Int> = _imageUploadProgress.asStateFlow()
 
     init {
         checkIfUserHasJoined()
@@ -125,7 +138,8 @@ class ChatRoomViewModel(
                             text = joinMessageText,
                             timestamp = member.timestamp,
                             isSystemMessage = true,
-                            roomId = roomId
+                            roomId = roomId,
+                            messageType = MessageType.TEXT
                         )
                     }
                     (chatMessages + joinMessages).sortedBy { it.timestamp }
@@ -136,7 +150,7 @@ class ChatRoomViewModel(
             }
         }
 
-        _isRoomExists.value = false
+        _isRoomExists.value = null
         checkIfRoomExists(roomId)
     }
 
@@ -155,7 +169,8 @@ class ChatRoomViewModel(
                 senderName = senderName?:SENDER_NAME,
                 text = text,
                 timestamp = System.currentTimeMillis(),
-                roomId = roomId
+                roomId = roomId,
+                messageType = MessageType.TEXT
             )
 
             viewModelScope.launch {
@@ -165,10 +180,47 @@ class ChatRoomViewModel(
     }
 
     /**
-     * Retries sending a failed message.
-     * This function updates the message status back to SENDING and attempts to resend it.
+     * Handles sending image messages.
      *
-     * @param message The ChatMessage object to retry.
+     * @param imageUri The URI of the image to send.
+     */
+    fun sendImageMessage(currentSenderId: String,roomId: String, imageUri: Uri) {
+        viewModelScope.launch {
+            // Create a temporary message entity for the image
+            val imageMessage = ChatMessageEntity(
+                id = UuidGenerator.generateUniqueId(),
+                roomId = roomId,
+                senderId = currentSenderId,
+                senderName = senderName ?: SENDER_NAME,
+                text = "",
+                imageUrl = imageUri.toString(),
+                timestamp = System.currentTimeMillis(),
+                status = MessageStatus.SENDING,
+                messageType = MessageType.IMAGE
+            )
+
+            // Reset progress
+            _imageUploadProgress.value = 0
+
+            // Start the upload process
+            chatRoomRepository.sendImageMessage(
+                roomId = roomId,
+                message = imageMessage,
+                imageUri = imageUri,
+                onProgress = { progress ->
+                    // Update progress state for the UI
+                    _imageUploadProgress.value = progress
+                }
+            )
+        }
+    }
+
+    /**
+     * Retries sending a failed message.
+     * This function now handles both text and image messages.
+     *
+     * @param message The failed message to retry.
+     * @param roomId The ID of the chat room.
      */
     fun retrySendMessage(message: ChatMessageEntity, roomId: String) {
         viewModelScope.launch {

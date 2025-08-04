@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
+import com.jejecomms.realtimechatfeature.ui.theme.LightGreen
 import com.jejecomms.realtimechatfeature.ui.theme.White
 import com.jejecomms.realtimechatfeature.utils.DateUtils.formatTime
 
@@ -70,9 +72,10 @@ fun ChatRoomItem(
             // Archive button
             Box(
                 modifier = Modifier
-                    .width(100.dp)
-                    .fillMaxHeight()
+                    .width(50.dp)
+                    .height(50.dp)
                     .background(White)
+                    .padding(start = 5.dp)
                     .clickable {
                         onArchive(chatRoom)
                         isRevealed = false
@@ -81,12 +84,12 @@ fun ChatRoomItem(
             ) {
                 Icon(Icons.Default.Archive, contentDescription = "Archive", tint = Color.Gray)
             }
-
+            Spacer(modifier = Modifier.width(4.dp))
             // Delete button
             Box(
                 modifier = Modifier
-                    .width(100.dp)
-                    .fillMaxHeight()
+                    .width(50.dp)
+                    .height(50.dp)
                     .background(White)
                     .clickable {
                         onDelete(chatRoom)
@@ -147,7 +150,7 @@ fun ChatRoomItem(
                         fontSize = 14.sp
                     )
                     Text(
-                        text = chatRoom.lastMessage.toString(),
+                        text = chatRoom.lastMessage?.toString() ?: "",
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

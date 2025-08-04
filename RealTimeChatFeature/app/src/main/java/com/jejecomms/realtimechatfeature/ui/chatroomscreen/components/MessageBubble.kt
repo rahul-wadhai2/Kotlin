@@ -3,37 +3,30 @@ package com.jejecomms.realtimechatfeature.ui.chatroomscreen.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DoneAll
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jejecomms.realtimechatfeature.R
+import coil.compose.AsyncImage
 import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
+import com.jejecomms.realtimechatfeature.data.model.MessageType
 import com.jejecomms.realtimechatfeature.ui.theme.LightGreen
 import com.jejecomms.realtimechatfeature.ui.theme.White
-import com.jejecomms.realtimechatfeature.utils.DateUtils.formatTime
 
 /**
  * Composable function to display a single chat message bubble.
@@ -48,7 +41,7 @@ import com.jejecomms.realtimechatfeature.utils.DateUtils.formatTime
 fun MessageBubble(
     message: ChatMessageEntity,
     isCurrentUser: Boolean,
-    onRetryClick: (ChatMessageEntity) -> Unit
+    onRetryClick: (ChatMessageEntity) -> Unit,
 ) {
     /**
      * This colour is used to set the background color of the message bubble.
@@ -60,12 +53,6 @@ fun MessageBubble(
      * This colour is used to set the text color of the message bubble.
      */
     val textColor = if (isCurrentUser) Color.White else Color.Black
-
-    /**
-     * This colour is used to set the timestamp text color of the message bubble.
-     */
-    val timestampColor = if (isCurrentUser) Color.White.copy(alpha = 0.7f)
-    else Color.Black.copy(alpha = 0.7f)
 
     /**
      * This value is used to set the corner radius of the message bubble.
@@ -102,11 +89,6 @@ fun MessageBubble(
     val bubbleElevation = 2.dp
 
     /**
-     * This value is used to set the horizontal padding of the message bubble.
-     */
-    val contentHorizontalPadding = 10.dp
-
-    /**
      * This value is used to set the vertical padding of the message bubble.
      */
     val messageBubblePadding = 8.dp
@@ -117,7 +99,7 @@ fun MessageBubble(
             .padding(
                 start = messageBubblePadding,
                 end = messageBubblePadding,
-                top = 1.dp,
+                top = 4.dp,
                 bottom = 1.dp
             ),
         horizontalAlignment = horizontalAlignment
@@ -127,66 +109,60 @@ fun MessageBubble(
                 .shadow(elevation = bubbleElevation, shape = bubbleShape)
                 .background(bubbleColor, bubbleShape)
                 .wrapContentHeight()
-                .padding(horizontal = contentHorizontalPadding, vertical = 2.dp)
                 .widthIn(max = 280.dp)
         ) {
-            Column {
-                Text(
-                    text = message.text,
-                    color = textColor,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
+            when (message.messageType) {
+                MessageType.TEXT -> {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = message.text,
+                            color = textColor,
+                            fontSize = 14.sp
+                        )
+                        MessageStatusFooter(
+                            message = message,
+                            isCurrentUser = isCurrentUser,
+                            onRetryClick = onRetryClick
+                        )
+                    }
+                }
 
-                Spacer(modifier = Modifier.height(0.dp))
-
-                Row(
-                    modifier = Modifier.align(Alignment.End),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = formatTime(message.timestamp),
-                        fontSize = 10.sp,
-                        color = timestampColor
-                    )
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    // --- Message Status Icons ---
-                    // This block will decide which icon to show based on the message status.
-                    if (isCurrentUser) {
-                        when (message.status) {
-                            MessageStatus.SENDING -> {
-                                // Show a circular progress bar when the message is being sent
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(14.dp),
-                                    color = timestampColor,
-                                    strokeWidth = 2.dp
-                                )
+                MessageType.IMAGE -> {
+                    message.imageUrl?.let { imageUrl ->
+                        Box(
+                            modifier = Modifier
+                                .size(200.dp)
+                                .clip(bubbleShape)
+                        ) {
+                            AsyncImage(
+                                model = imageUrl,
+                                contentDescription = "Image message",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(bubbleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                            // Display a loading indicator on top of the image if it's still sending
+                            if (message.status == MessageStatus.SENDING) {
+                                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                             }
-                            MessageStatus.SENT -> {
-                                // Show a double tick for a successfully sent message
-                                Icon(
-                                    imageVector = Icons.Filled.DoneAll,
-                                    contentDescription = stringResource(R.string.des_sent),
-                                    tint = timestampColor,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                            MessageStatus.FAILED -> {
-                                // Display a clickable retry icon for failed messages
-                                IconButton(
-                                    onClick = { onRetryClick(message)  },
-                                    modifier = Modifier.size(18.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Refresh,
-                                        contentDescription = stringResource(R.string.des_retry),
-                                        tint = Color.Red,
-                                        modifier = Modifier.size(16.dp)
+                            // Overlay for time and status on the image
+                            MessageStatusFooter(
+                                message = message,
+                                isCurrentUser = isCurrentUser,
+                                onRetryClick = onRetryClick,
+                                isOverlay = true,
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .background(
+                                        Color.Black.copy(alpha = 0.5f),
+                                        // Shape for the overlay footer
+                                        shape = RoundedCornerShape(topStart = 8.dp)
                                     )
-                                }
-                            }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
                         }
                     }
                 }

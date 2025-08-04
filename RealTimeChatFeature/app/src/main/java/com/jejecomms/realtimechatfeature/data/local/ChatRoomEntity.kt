@@ -14,13 +14,17 @@ import com.jejecomms.realtimechatfeature.utils.UuidGenerator
  * @param unreadCount Number of unread messages in the chat room.
  * @param isMuted Flag indicating if the chat room is muted.
  * @param isArchived Flag indicating if the chat room is archived.
+ * @param groupName The name of the chat room.
+ * @param lastReadTimestamp Timestamp of the last read message in the chat room.
+ * @param userName The name of the user associated with the chat room.
+ * @param isDeletedLocally Flag indicating if the chat room has been deleted locally.
  */
 @Entity(tableName = CHAT_ROOM)
 data class ChatRoomEntity(
     @PrimaryKey
     val id: String = UuidGenerator.generateUniqueId(),
     val roomId: String? = null,
-    val lastMessage: String? = null,
+    val lastMessage: String? = "",
     val lastTimestamp: Long = 0L,
     val unreadCount: Int = 0,
     val isMuted: Boolean = false,

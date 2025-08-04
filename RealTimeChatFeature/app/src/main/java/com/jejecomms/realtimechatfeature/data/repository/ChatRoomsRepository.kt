@@ -134,7 +134,7 @@ class ChatRoomsRepository(
 
         val newChatRoom = ChatRoomEntity(
             roomId = chatRoomId,
-            lastMessage = "Room created by $userName",
+            lastMessage = "",
             lastTimestamp = System.currentTimeMillis(),
             unreadCount = 0,
             isMuted = false,
@@ -237,5 +237,14 @@ class ChatRoomsRepository(
                 messageDao.updateAllLastReadTimestamps(System.currentTimeMillis())
             }
         }
+    }
+
+    /**
+     * Gets the last message for a given chat room ID from the local database.
+     */
+    suspend fun getLastMessageForRoom(roomId: String): String? {
+        // This will fetch the last message from the local database
+        val lastMessage = messageDao.getLastMessageForRoom(roomId)
+        return lastMessage?.text
     }
 }

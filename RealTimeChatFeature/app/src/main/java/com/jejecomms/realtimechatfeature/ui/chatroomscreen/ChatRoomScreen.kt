@@ -117,6 +117,22 @@ fun ChatScreen(
         showInputField = true
     }
 
+    /**
+     * Get the messages list from the UI state.
+     */
+    val messages = (uiState as? ChatScreenState.Content)?.messages ?: emptyList()
+
+    /**
+     * This LaunchedEffect will check the state of the list before trying to scroll.
+     * It also uses a more stable key (the messages list itself), ensuring it reacts
+     * to all changes, including messages being updated.
+     */
+    LaunchedEffect(messages) {
+        if (!listState.isScrollInProgress && messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -183,6 +199,9 @@ fun ChatScreen(
                         onSendMessage = { message ->
                             chatRoomViewModel.sendMessage(message, currentSenderId, roomId)
                         },
+                        onSendImage = { imageUri ->
+                            chatRoomViewModel.sendImageMessage(currentSenderId, roomId, imageUri)
+                        },
                         modifier = Modifier
                             .navigationBarsPadding()
                             .imePadding()
@@ -203,18 +222,12 @@ fun ChatScreen(
                 }
 
                 is ChatScreenState.Content -> {
-                    // This list now contains both chat messages and system messages
-                    val messages = (uiState as ChatScreenState.Content).messages
-                    LaunchedEffect(messages.size) {
-                        if (messages.isNotEmpty()) {
-                            listState.animateScrollToItem(messages.size - 1)
-                        }
-                    }
                     if (messages.isNotEmpty()) {
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp)
+                            contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp),
+                            reverseLayout = false
                         ) {
                             itemsIndexed(messages) { index, message ->
                                 // Determine if a date separator should be shown

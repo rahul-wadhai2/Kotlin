@@ -139,4 +139,10 @@ interface MessageDao {
      */
     @Query("SELECT MIN(lastReadTimestamp) FROM $CHAT_ROOM")
     suspend fun getMinLastReadTimestamp(): Long?
+
+    /**
+     * Retrieves the last message for a specific room.
+     */
+    @Query("SELECT * FROM $MESSAGES WHERE roomId = :roomId ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getLastMessageForRoom(roomId: String): ChatMessageEntity?
 }

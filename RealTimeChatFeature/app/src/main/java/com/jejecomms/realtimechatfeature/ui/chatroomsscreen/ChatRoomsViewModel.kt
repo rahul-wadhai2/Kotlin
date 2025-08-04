@@ -81,8 +81,14 @@ class ChatRoomsViewModel(
         viewModelScope.launch {
             val currentSenderId = SharedPreferencesUtil.getString(KEY_SENDER_ID)
             chatRoomsRepository.getAllChatRoomsWithUnreadCount(currentSenderId.toString())
-                .collect { chatRoomList ->
-                    _chatRooms.value = chatRoomList
+                .collect { chatRooms ->
+                    // For each chat room, fetch the last message
+                    val updatedChatRooms = chatRooms.map { chatRoom ->
+                        val lastMessage = chatRoomsRepository
+                            .getLastMessageForRoom(chatRoom.roomId.toString())
+                        chatRoom.copy(lastMessage = lastMessage)
+                    }
+                    _chatRooms.value = updatedChatRooms
                 }
         }
     }

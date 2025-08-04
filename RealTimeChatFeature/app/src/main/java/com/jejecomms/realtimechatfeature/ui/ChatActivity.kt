@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import com.jejecomms.realtimechatfeature.ChatApplication
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomRepository
@@ -41,11 +42,16 @@ class ChatActivity : ComponentActivity() {
      */
     private val firestoreDb by lazy { FirebaseFirestore.getInstance() }
 
+    /**
+     * Initialize Firebase Storage instance
+     */
+    private val firebaseStorage by lazy { FirebaseStorage.getInstance() }
+
     private val chatRoomRepository by lazy {
         val application = application as ChatApplication
         val applicationScope = application.applicationScope
         val messageDao = application.messageDao
-        ChatRoomRepository(firestoreDb, messageDao, applicationScope)
+        ChatRoomRepository(firestoreDb, messageDao, applicationScope, firebaseStorage)
     }
 
     private val chatRoomsRepository by lazy {

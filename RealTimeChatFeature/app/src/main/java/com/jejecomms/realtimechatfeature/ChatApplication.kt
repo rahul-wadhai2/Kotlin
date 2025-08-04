@@ -7,7 +7,6 @@ import androidx.work.WorkManager
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.jejecomms.realtimechatfeature.data.local.ChatDatabase
-import com.jejecomms.realtimechatfeature.data.repository.ChatRoomRepository
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomsRepository
 import com.jejecomms.realtimechatfeature.utils.NetworkMonitor
 import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
