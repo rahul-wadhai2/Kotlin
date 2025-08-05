@@ -265,3 +265,39 @@ The Firebase listener is a core component of this application's real-time functi
 * **Implementation:** The ```startFirestoreMessageListener``` function in ```ChatRepository.kt``` sets up the listener on a Firestore collection.
 * **Purpose:** The listener's purpose is to synchronize the Firestore data with the local Room database. It queries the ```messages``` subcollection within a specific ```chatroom document```, ordered by the ```timestamp```.
 * **Data Handling:** The listener's snapshots are collected as a ```Flow```, and the remote messages are then mapped to ```ChatMessageEntity``` objects before being inserted into the local database. This ensures the local data is always a reflection of the remote data.
+
+## Unread messages tracking logic and schema
+
+This document outlines the logic and schema used to track and display unread message counts for chat rooms within the application.
+
+#### 1. Data Schema
+
+The unread message count and other chat room data are managed using a local Room database, which is synchronized with Firestore.
+
+**`ChatRoomEntity.kt`**
+This is the primary data class representing a chat room in the local database. It contains all the necessary information for a chat room item in the list screen, including the unread message count.
+
+* **`roomId`**: A unique ID for the chat room.
+* **`groupName`**: The name of the chat room.
+* **`lastMessage`**: The text of the last message sent in the room. This field is updated in the `ChatRoomsViewModel` after fetching the chat room list.
+* **`lastTimestamp`**: The timestamp of the last message.
+* **`unreadCount`**: An integer representing the number of unread messages for the current user.
+* **`lastReadTimestamp`**: The timestamp of the last message the user read in this room. This is a critical field for calculating `unreadCount`.
+
+#### 2. Unread Message Count Logic
+
+The logic for tracking and displaying unread messages is handled by a combination of a WorkManager, the `ChatRoomsRepository`, a Data Access Object (DAO), and the `ChatRoomsViewModel`.
+
+**Data Flow**
+1.  **Data Source**: The application uses a `Room` database to store `ChatRoomEntity` and `ChatMessageEntity` objects locally.
+2.  **`TimestampInitializationWorker`**: This worker is responsible for initializing the `lastReadTimestamp` for a given chat room. This is critical for ensuring that when a user joins a new room, they don't see all previous messages as "unread." It sets the `lastReadTimestamp` to the current time, effectively resetting the unread count to zero for that user and room.
+3.  **Repository Layer**: The `ChatRoomsRepository` is responsible for providing a flow of chat rooms that includes the unread count for each room.
+4.  **ViewModel Layer**: The `ChatRoomsViewModel` observes this flow from the repository. When a new list of chat rooms is emitted, it iterates through each `ChatRoomEntity`.
+5.  **Last Message Fetching**: For each chat room, the `ChatRoomsViewModel` calls `chatRoomsRepository.getLastMessageForRoom(chatRoom.roomId.toString())` to fetch the last message text, and then uses `chatRoom.copy(lastMessage = lastMessage)` to create a new `ChatRoomEntity` with the updated last message information.
+6.  **UI Update**: The updated list of `ChatRoomEntity` objects is then passed to the UI, where the `ChatRoomItem` composable displays the `unreadCount` and `lastMessage` fields.
+
+**Key Implementation Details**
+
+* **Firebase Listener**: A Firestore listener is used to keep the local `Room` database up-to-date with remote changes. When new messages arrive, they are inserted into the local database, which triggers the flow to update.
+* **`MessageDao`**: The `MessageDao` contains a query to calculate the number of unread messages for a given room and user. This is typically done by counting all messages that have a timestamp greater than the user's `lastReadTimestamp` for that room.
+* **`SharedPreferences`**: The current user's ID is retrieved from `SharedPreferences` to ensure the unread count is specific to their account.
