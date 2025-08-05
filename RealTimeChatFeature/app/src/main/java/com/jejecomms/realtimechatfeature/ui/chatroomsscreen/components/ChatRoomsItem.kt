@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
@@ -46,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
-import com.jejecomms.realtimechatfeature.ui.theme.LightGreen
 import com.jejecomms.realtimechatfeature.ui.theme.White
 import com.jejecomms.realtimechatfeature.utils.DateUtils.formatTime
 
@@ -69,35 +67,42 @@ fun ChatRoomItem(
         onExpanded = { isRevealed = true },
         onCollapsed = { isRevealed = false },
         actions = {
-            // Archive button
-            Box(
+            // Use a Row for the actions to handle alignment and spacing
+            Row(
                 modifier = Modifier
-                    .width(50.dp)
-                    .height(50.dp)
-                    .background(White)
-                    .padding(start = 5.dp)
-                    .clickable {
-                        onArchive(chatRoom)
-                        isRevealed = false
-                    },
-                contentAlignment = Alignment.Center
+                    .fillMaxHeight()
+                    .padding(start = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Archive, contentDescription = "Archive", tint = Color.Gray)
-            }
-            Spacer(modifier = Modifier.width(4.dp))
-            // Delete button
-            Box(
-                modifier = Modifier
-                    .width(50.dp)
-                    .height(50.dp)
-                    .background(White)
-                    .clickable {
-                        onDelete(chatRoom)
-                        isRevealed = false
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+                // Archive button
+                Box(
+                    modifier = Modifier
+                        .width(50.dp)
+                        .fillMaxHeight()
+                        .background(White)
+                        .clickable {
+                            onArchive(chatRoom)
+                            isRevealed = false
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Archive, contentDescription = "Archive", tint = Color.DarkGray)
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                // Delete button
+                Box(
+                    modifier = Modifier
+                        .width(50.dp)
+                        .fillMaxHeight()
+                        .background(White)
+                        .clickable {
+                            onDelete(chatRoom)
+                            isRevealed = false
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+                }
             }
         }
     ) {
