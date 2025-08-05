@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -122,6 +123,8 @@ fun ChatScreen(
      */
     val messages = (uiState as? ChatScreenState.Content)?.messages ?: emptyList()
 
+    val context = LocalContext.current
+
     /**
      * This LaunchedEffect will check the state of the list before trying to scroll.
      * It also uses a more stable key (the messages list itself), ensuring it reacts
@@ -200,7 +203,8 @@ fun ChatScreen(
                             chatRoomViewModel.sendMessage(message, currentSenderId, roomId)
                         },
                         onSendImage = { imageUri ->
-                            chatRoomViewModel.sendImageMessage(currentSenderId, roomId, imageUri)
+                            chatRoomViewModel.sendImageMessage(currentSenderId, roomId
+                                ,imageUri, context)
                         },
                         modifier = Modifier
                             .navigationBarsPadding()

@@ -1,6 +1,8 @@
 package com.jejecomms.realtimechatfeature.data.repository
 
+import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.core.net.toUri
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -27,6 +29,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
 
 /**
  * Repository class responsible for handling data operations related to chat room messages.
@@ -324,6 +329,34 @@ class ChatRoomRepository(
             //On failure, update the message status to FAILED, but PRESERVE the original local URI
             //to allow the image to be displayed.
             messageDao.updateMessage(message.copy(status = MessageStatus.FAILED))
+        }
+    }
+
+    /**
+     * Copies an image from a content URI to a local file in the app's cache.
+     * @param imageUri The content URI of the image.
+     * @param messageId The unique ID for the message, used to name the file.
+     * @param context The application context.
+     * @return The absolute path to the newly created local file, or null if it fails.
+     */
+    suspend fun saveImageToCache(imageUri: Uri, messageId: String, context: Context): String? {
+        return withContext(Dispatchers.IO) {
+            val cacheDir = context.cacheDir
+            val cacheFile = File(cacheDir, "$messageId.jpg")
+
+            try {
+                val inputStream: InputStream? = context.contentResolver.openInputStream(imageUri)
+                if (inputStream != null) {
+                    val outputStream = FileOutputStream(cacheFile)
+                    inputStream.use { input ->
+                        outputStream.use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    return@withContext cacheFile.absolutePath
+                }
+            } catch (_: Exception) {}
+            null
         }
     }
 }

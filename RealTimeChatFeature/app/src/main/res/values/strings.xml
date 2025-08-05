@@ -30,4 +30,5 @@
     <string name="unknown_error">An unknown error occurred.</string>
     <string name="group_created_successful">Group created successfully!</string>
     <string name="des_send_image">Send Image</string>
+    <string name="des_chat_image">Image message</string>
 </resources>

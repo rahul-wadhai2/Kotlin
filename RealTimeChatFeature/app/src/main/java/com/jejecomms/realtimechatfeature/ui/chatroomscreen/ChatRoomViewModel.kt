@@ -1,6 +1,7 @@
 package com.jejecomms.realtimechatfeature.ui.chatroomscreen
 
 import android.app.Application
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -184,16 +185,21 @@ class ChatRoomViewModel(
      *
      * @param imageUri The URI of the image to send.
      */
-    fun sendImageMessage(currentSenderId: String,roomId: String, imageUri: Uri) {
+    fun sendImageMessage(currentSenderId: String,roomId: String, imageUri: Uri
+                         ,context: Context) {
         viewModelScope.launch {
+            val messageId = UuidGenerator.generateUniqueId()
+            //Save the image to a local cache and get its path
+            val localImagePath = chatRoomRepository.saveImageToCache(imageUri, messageId
+                ,context)
             // Create a temporary message entity for the image
             val imageMessage = ChatMessageEntity(
-                id = UuidGenerator.generateUniqueId(),
+                id = messageId,
                 roomId = roomId,
                 senderId = currentSenderId,
                 senderName = senderName ?: SENDER_NAME,
                 text = "",
-                imageUrl = imageUri.toString(),
+                imageUrl = localImagePath,// Handle only offline will logic change for online.
                 timestamp = System.currentTimeMillis(),
                 status = MessageStatus.SENDING,
                 messageType = MessageType.IMAGE

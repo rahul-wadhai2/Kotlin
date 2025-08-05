@@ -19,9 +19,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.data.model.MessageType
@@ -93,6 +97,8 @@ fun MessageBubble(
      */
     val messageBubblePadding = 8.dp
 
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -136,9 +142,15 @@ fun MessageBubble(
                                 .size(200.dp)
                                 .clip(bubbleShape)
                         ) {
+                            // handle for local image message only not online upload.
+                            // Will do later work on online.
+                            val imageRequest = ImageRequest.Builder(context)
+                                .data(imageUrl)
+                                .build()
+
                             AsyncImage(
-                                model = imageUrl,
-                                contentDescription = "Image message",
+                                model = imageRequest,
+                                contentDescription = stringResource(R.string.des_chat_image),
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .clip(bubbleShape),
