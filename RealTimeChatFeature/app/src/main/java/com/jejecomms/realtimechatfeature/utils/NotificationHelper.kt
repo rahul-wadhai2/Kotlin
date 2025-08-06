@@ -13,6 +13,9 @@ import androidx.core.content.ContextCompat
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.ui.ChatActivity
 
+/**
+ * Helper object for creating and showing notifications.
+ */
 object NotificationHelper {
     private const val CHANNEL_ID = "com.jejecomms.realtimechatfeature.chat_channel"
     private const val CHANNEL_NAME = "Chat Messages"
