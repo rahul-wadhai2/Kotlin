@@ -53,7 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
-import com.jejecomms.realtimechatfeature.ui.chatroomsscreen.components.ChatRoomItem
+import com.jejecomms.realtimechatfeature.ui.chatroomsscreen.components.ChatRoomsItem
 import com.jejecomms.realtimechatfeature.ui.theme.DarkGreenTheme
 import com.jejecomms.realtimechatfeature.ui.theme.LightGreen
 import com.jejecomms.realtimechatfeature.ui.theme.White
@@ -63,7 +63,8 @@ import com.jejecomms.realtimechatfeature.ui.theme.White
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatRoomListScreen(
+fun ChatRoomsScreen(
+    modifier: Modifier = Modifier,
     chatRooms: List<ChatRoomEntity>,
     onChatRoomClick: (ChatRoomEntity) -> Unit,
     onToggleMute: (ChatRoomEntity) -> Unit,
@@ -279,7 +280,7 @@ fun ChatRoomListScreen(
             contentPadding = PaddingValues(top = 8.dp)
         ) {
             items(chatRooms) { chatRoomEntity ->
-                ChatRoomItem(
+                ChatRoomsItem(
                     chatRoom = chatRoomEntity,
                     onChatRoomClick = onChatRoomClick,
                     onArchive = onArchive,

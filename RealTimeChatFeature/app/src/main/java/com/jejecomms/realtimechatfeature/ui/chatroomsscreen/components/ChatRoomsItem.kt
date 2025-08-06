@@ -50,7 +50,7 @@ import com.jejecomms.realtimechatfeature.utils.DateUtils.formatTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatRoomItem(
+fun ChatRoomsItem(
     chatRoom: ChatRoomEntity,
     onChatRoomClick: (ChatRoomEntity) -> Unit,
     onArchive: (ChatRoomEntity) -> Unit,

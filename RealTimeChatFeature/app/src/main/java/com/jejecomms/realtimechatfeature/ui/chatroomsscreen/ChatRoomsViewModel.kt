@@ -12,6 +12,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -53,6 +54,10 @@ class ChatRoomsViewModel(
      * Job for the Firestore listener for rooms.
      */
     private var firestoreRoomsListenerJob: Job? = null
+
+    // StateFlow to hold the ChatRoomEntity from a deep link
+    private val _deepLinkChatRoom = MutableStateFlow<ChatRoomEntity?>(null)
+    val deepLinkChatRoom: StateFlow<ChatRoomEntity?> = _deepLinkChatRoom
 
     init {
         // Start the Firestore listener and collect the unread count flow
@@ -131,6 +136,27 @@ class ChatRoomsViewModel(
     fun resetGroupCreationStatus() {
         _groupCreationSuccessful.value = false
         _createGroupError.value = null
+    }
+
+    // Function to handle the initial deep link
+    fun handleInitialDeepLink(roomId: String?) {
+        if (roomId != null) {
+            viewModelScope.launch {
+                // Wait for the chatRooms flow to emit its first non-empty list
+                chatRooms.first { it.isNotEmpty() }
+
+                // Now that the data is loaded, find the room and set the state
+                val room = chatRooms.value.find { it.roomId.toString() == roomId }
+                if (room != null) {
+                    _deepLinkChatRoom.value = room
+                }
+            }
+        }
+    }
+
+    // Function to clear the deep link state after navigation
+    fun clearDeepLinkChatRoom() {
+        _deepLinkChatRoom.value = null
     }
 
     override fun onCleared() {

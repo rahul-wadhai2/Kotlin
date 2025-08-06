@@ -4,6 +4,7 @@ package com.jejecomms.realtimechatfeature.utils
  *  Constant class containing various constants used throughout the application.
  */
 object Constants {
+
     /**
      * Maximum character limit for a message
      */
@@ -23,6 +24,17 @@ object Constants {
      * You have joined the chat room message.
      */
     const val YOU_HAVE_JOINED_THE_CHAT_ROOM = "You have joined the chat room"
+
+    /**
+     * The key used to pass the chat room ID as an extra in an Intent.
+     * This is primarily used for deep linking from a notification to the correct chat room.
+     */
+    const val EXTRA_ROOM_ID = "extra_room_id"
+
+    /**
+     * Package name for the application.
+     */
+    const val PACKAGE = "package"
 
     /*************************SharedPreferences*********************************/
     /**

@@ -63,7 +63,8 @@ import com.jejecomms.realtimechatfeature.utils.DateUtils
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(
+fun ChatRoomScreen(
+    modifier: Modifier = Modifier,
     chatRoomViewModel: ChatRoomViewModel,
     currentSenderId: String,
     selectedChatRoom: ChatRoomEntity?,

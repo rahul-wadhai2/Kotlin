@@ -31,4 +31,6 @@
     <string name="group_created_successful">Group created successfully!</string>
     <string name="des_send_image">Send Image</string>
     <string name="des_chat_image">Image message</string>
+    <string name="notification_permission_message">Please enable notifications in settings to receive new messages.</string>
+    <string name="action_settings_label">Settings</string>
 </resources>
