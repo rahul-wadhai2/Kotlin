@@ -301,3 +301,157 @@ The logic for tracking and displaying unread messages is handled by a combinatio
 * **Firebase Listener**: A Firestore listener is used to keep the local `Room` database up-to-date with remote changes. When new messages arrive, they are inserted into the local database, which triggers the flow to update.
 * **`MessageDao`**: The `MessageDao` contains a query to calculate the number of unread messages for a given room and user. This is typically done by counting all messages that have a timestamp greater than the user's `lastReadTimestamp` for that room.
 * **`SharedPreferences`**: The current user's ID is retrieved from `SharedPreferences` to ensure the unread count is specific to their account.
+
+This Android application implements a real-time chat feature using **Firebase Cloud Firestore** for backend data storage and **Firebase Cloud Messaging (FCM)** for notifications. It also utilizes **Room Persistence Library** for local data caching and **WorkManager** for background synchronization tasks.
+
+
+## FCM Structure and Integration
+
+The application integrates FCM to deliver real-time notifications for new chat messages.
+
+### AndroidManifest.xml Configuration
+
+The `AndroidManifest.xml` declares the `RealtimeChatMessagingService`, a custom FirebaseMessagingService, to handle incoming FCM messages:
+
+```xml
+<service
+    android:name=".workers.RealtimeChatMessagingService"
+    android:exported="false">
+    <intent-filter>
+        <action android:name="com.google.firebase.MESSAGING_EVENT" />
+    </intent-filter>
+</service>
+```
+
+This declaration ensures that the `RealtimeChatMessagingService` is triggered whenever a new FCM message is received by the device. The `android:exported="false"` attribute ensures that this service is not accessible by other applications.
+
+### RealtimeChatMessagingService (`workers/RealtimeChatMessagingService.kt`)
+
+This service is the core component for handling FCM messages:
+
+  * **`onMessageReceived(remoteMessage: RemoteMessage)`**:
+      * This method is invoked when an FCM message is received.
+      * It first calls `NotificationHelper.createNotificationChannel()` to ensure the notification channel exists (important for Android 8.0+ notifications).
+      * It checks if the `remoteMessage` contains data (payload).
+      * If data is present and the `type` is "chat\_message", it extracts `roomId`, `messagePreview`, and `senderId`.
+      * Finally, it calls `NotificationHelper.showChatNotification()` to display a system notification to the user.
+  * **`onNewToken(token: String)`**:
+      * This method is called when a new FCM registration token is generated (e.g., on initial app install, app data clear, or token refresh).
+      * While the current implementation simply calls `super.onNewToken(token)`, in a production application, this token would typically be sent to your application server. The server uses these tokens to send targeted notifications to specific devices.
+
+### NotificationHelper (`utils/NotificationHelper.kt`)
+
+This utility object is responsible for creating and displaying notifications:
+
+  * **`createNotificationChannel(context: Context)`**:
+      * The channel is named "Chat Notifications" with a high importance.
+  * **`showChatNotification(context: Context, roomId: String, message: String, senderId: String?)`**:
+      * Builds and displays a notification for a new chat message.
+      * It creates an `Intent` to launch `ChatActivity` when the notification is tapped.
+      *  ⚠️(Issue) Crucially, it includes `EXTRA_ROOM_ID` in the intent, allowing `ChatActivity` to deep-link directly to the relevant chat room.
+      * A `PendingIntent` is created to wrap this `Intent`, making it available to the system.
+      * The `NotificationCompat.Builder` is used to construct the notification with a small icon, title, content text, and priority.
+      * `setAutoCancel(true)` ensures the notification is dismissed when the user taps it.
+      * `NotificationManagerCompat.from(context).notify()` displays the notification.
+
+-----
+
+## Read Tracking Logic Analysis
+
+The application implements a robust read tracking mechanism to manage unread message counts in chat rooms, leveraging both **Firestore** and **Room Database**.
+
+### Data Models (`data/local/ChatMessageEntity.kt`, `data/local/ChatRoomEntity.kt`)
+
+  * **`ChatMessageEntity`**: Represents an individual chat message. Key fields for read tracking include:
+      * `timestamp`: The time the message was sent.
+      * `senderId`: The ID of the user who sent the message.
+      * `status`: (Though primarily for send status, it indirectly relates to message delivery/read state in a broader sense).
+  * **`ChatRoomEntity`**: Represents a chat room. Key fields for read tracking include:
+      * `lastTimestamp`: Timestamp of the latest message in the room.
+      * `lastReadTimestamp`: **The most critical field for read tracking.** This stores the timestamp of the *last message the current user has read in that specific chat room*.
+      * `unreadCount`: This field is **calculated dynamically** in the DAO query rather than being stored directly in the `ChatRoomEntity` itself, ensuring accuracy.
+
+### MessageDao (`data/local/MessageDao.kt`)
+
+The `MessageDao` provides the core database operations for read tracking:
+
+  * **`getAllChatRoomsWithUnreadCount(currentUserId: String): Flow<List<ChatRoomEntity>>`**:
+      * This is the primary query for displaying chat rooms with their unread counts on the main screen.
+      * It performs a `LEFT JOIN` between `CHAT_ROOM` and `MESSAGES` tables.
+      * The `SUM(CASE WHEN T2.senderId != :currentUserId AND T2.timestamp > T1.lastReadTimestamp THEN 1 ELSE 0 END)` clause is the **heart of the unread message calculation**.
+          * It counts messages where the `senderId` is *not* the `currentUserId` (i.e., messages sent by others).
+          * AND the message `timestamp` is *greater than* the `lastReadTimestamp` of the chat room.
+          * This effectively counts all messages from other users that arrived *after* the user last read the room.
+      * The results are grouped by `roomId` and ordered by `lastTimestamp` (most recent activity first).
+  * **`updateLastReadTimestamp(roomId: String, timestamp: Long)`**:
+      * This crucial method updates the `lastReadTimestamp` for a specific `roomId` to the given `timestamp`.
+      * This function is called when a user enters a chat room, effectively marking all messages up to that `timestamp` as "read" for that user in that room.
+  * **`updateAllLastReadTimestamps(timestamp: Long)`**:
+      * This method is used by `TimestampInitializationWorker` to set the `lastReadTimestamp` for all chat rooms to the current time if they are initially `0L` or `null`. This ensures that on the very first launch, all existing messages are considered "read" to avoid a large, inaccurate unread count.
+
+### Repositories (`data/repository/ChatRoomRepository.kt`, `data/repository/ChatRoomsRepository.kt`)
+
+  * **`ChatRoomRepository`**:
+      * **`updateLastReadTimestamp(roomId: String, timestamp: Long)`**: Exposes the DAO's update method to the ViewModel.
+  * **`ChatRoomsRepository`**:
+      * **`insertRooms(rooms: List<ChatRoomEntity>)`**: When new chat rooms are fetched from Firestore, this method ensures that the `lastReadTimestamp` of existing local rooms is preserved. This is vital because the Firestore `ChatRoomEntity` might not contain the `lastReadTimestamp` specific to the *current user*, which is a local-only tracking mechanism. It copies the existing local `lastReadTimestamp` to the updated room object before inserting.
+      * **`getAllChatRoomsWithUnreadCount(currentUserId: String): Flow<List<ChatRoomEntity>>`**: Directly exposes the DAO's flow to the `ChatRoomsViewModel`.
+      * **`getLastMessageForRoom(roomId: String): String?`**: Fetches the last message text from the local database for a given room. This is used to display a preview of the last message in the chat room list.
+
+### ViewModels (`ui/chatroomscreen/ChatRoomViewModel.kt`, `ui/chatroomsscreen/ChatRoomsViewModel.kt`)
+
+  * **`ChatRoomViewModel`**:
+      * **`updateLastReadTimestamp()`**: This method is called in the `init` block and `LaunchedEffect` of `ChatRoomScreen` , ensuring that whenever a user enters a chat room, the `lastReadTimestamp` for that room is updated to the current time. This marks all messages currently visible as read.
+  * **`ChatRoomsViewModel`**:
+      * Collects the `getAllChatRoomsWithUnreadCount` flow from `ChatRoomsRepository` to provide the `chatRooms` `StateFlow` to the UI. This `StateFlow` directly contains the calculated unread counts for each room, which are then displayed in `ChatRoomsScreen`.
+
+### Workers (`workers/TimestampInitializationWorker.kt`)
+
+  * **`TimestampInitializationWorker`**:
+      * This `CoroutineWorker` is enqueued on application launch (in `ChatApplication.onCreate()`).
+      * Its `doWork()` method calls `chatRoomsRepository.ensureAllTimestampsInitialized()`.
+      * This worker's purpose is to set the `lastReadTimestamp` for all chat rooms to the current time if they are `0L` (indicating they haven't been read before). This prevents a flood of "unread" messages when a user first installs or opens the app, as all historical messages would otherwise be counted as unread.
+
+-----
+
+## Overall Data Flow and Read Tracking Summary
+
+1.  **Initial Setup**: On app launch, `TimestampInitializationWorker` ensures all existing chat rooms have their `lastReadTimestamp` initialized to the current time if not already set.
+2.  **Receiving Messages (FCM)**:
+      * When a new message arrives via FCM, `RealtimeChatMessagingService` receives it.
+      * It extracts relevant data and uses `NotificationHelper` to display a notification.
+      * The notification includes a deep link to the specific `roomId`.
+3.  **Real-time Data Sync (Firestore to Room)**:
+      * `ChatRoomRepository.startFirestoreMessageListener()` continuously listens for new messages in Firestore for a given room.
+      * When new messages arrive, they are inserted into the local `ChatMessageEntity` table via `messageDao.insertMessages()`.
+      * Similarly, `ChatRoomsRepository.startFirestoreChatRoomsListener()` syncs `ChatRoomEntity` data from Firestore to the local Room database, ensuring `lastReadTimestamp` is preserved during updates.
+4.  **Displaying Messages and Unread Counts (UI)**:
+      * `ChatRoomViewModel` observes `chatRoomRepository.getLocalMessages()` and `chatRoomRepository.getGroupMembers()` to combine and display messages in the `ChatRoomScreen`.
+      * `ChatRoomsViewModel` observes `chatRoomsRepository.getAllChatRoomsWithUnreadCount()`. This query dynamically calculates the `unreadCount` for each room by comparing message timestamps with the `lastReadTimestamp` stored locally.
+5.  **Marking as Read**:
+      * When a user enters a `ChatRoomScreen`, `ChatRoomViewModel.updateLastReadTimestamp()` is immediately called.
+      * This updates the `lastReadTimestamp` for that specific `roomId` in the local Room database to the current time.
+      * This update automatically causes the `getAllChatRoomsWithUnreadCount` flow to re-emit, effectively reducing the unread count for that room to zero (or the number of messages received *after* the user entered the room if the timestamp is slightly delayed).
+6.  **Offline Handling**:
+      * Messages sent while offline are initially marked as `SENDING` in the local Room DB.
+      * When connectivity is restored, `ChatRoomRepository.sendAndUpadteMessage()` attempts to send these failed/pending messages to Firestore.
+      * If successful, the local status is updated to `SENT`. If it fails again, it's marked `FAILED`.
+      * This ensures a responsive UI even without immediate network access and provides retry mechanisms.
+7.  **Deletion Sync**:
+      * When a chat room is deleted, `ChatRoomsRepository.deleteChatRoom()` performs a soft delete locally and enqueues `DeletionSyncWorker`.
+      * This worker, when online, attempts to delete the room from Firestore and then permanently from the local database, ensuring consistency.
+---
+
+## ❌ Known Issues
+
+-   **Firestore Rules:** For development purposes, Firestore rules are currently open (`allow read, write: if true;`). These will be secured in upcoming phases to ensure data integrity and user privacy.
+
+-   **Server Integration:** Notifications can currently only be triggered through the Firebase Console for testing. Full server-side integration, which involves storing FCM tokens and dynamically sending notifications, is a key focus for Phase.
+
+-   **Deep Linking:** Tapping a notification does not yet navigate the user to the relevant chatroom. This functionality will be addressed with server-triggered data payloads, ensuring a seamless user experience.
+
+-   **Read/Unread Count:** The logic for updating the `lastReadTimestamp` and counting messages, after entering a chatroom and returning to the room list, sometimes shows the same count.
+
+-   **Image Upload:** Image upload is showing failed because Firebase storage is a paid service, so it cannot be tested, but the code is implemented.
+
+-   **Stretch Features:** Presence tracking and typing indicators are planned for future releases.
