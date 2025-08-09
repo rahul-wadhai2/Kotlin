@@ -4,14 +4,15 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.jejecomms.realtimechatfeature.ChatApplication
-import com.jejecomms.realtimechatfeature.utils.NetworkMonitor
+import com.jejecomms.realtimechatfeature.utils.NetworkMonitor.isOnline
+import kotlinx.coroutines.flow.first
 
 /**
  * DeletionSyncWorker is a background worker responsible for syncing locally deleted chat rooms.
  */
 class DeletionSyncWorker(
     appContext: Context,
-    workerParams: WorkerParameters
+    workerParams: WorkerParameters,
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -22,7 +23,12 @@ class DeletionSyncWorker(
             return Result.success()
         }
 
-        if (!NetworkMonitor.isOnline()) {
+        // Wait for the device to be online before proceeding.
+        // This suspends the coroutine until `isOnline()` emits 'true'.
+        try {
+            isOnline().first { it }
+        } catch (_: Exception) {
+            // If the Flow is cancelled or fails for some reason, we retry.
             return Result.retry()
         }
 

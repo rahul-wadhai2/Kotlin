@@ -4,13 +4,15 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 
 /**
  * Room database for the chat feature.
  */
 @Database(entities = [ChatMessageEntity::class,ChatRoomMemberEntity::class,
-    ChatRoomEntity::class]
+    ChatRoomEntity::class, ReadReceiptEntity::class]
     ,version = 1, exportSchema = false)
+@TypeConverters(ListConverter::class)
 abstract class ChatDatabase : RoomDatabase() {
     abstract fun messageDao(): MessageDao
 

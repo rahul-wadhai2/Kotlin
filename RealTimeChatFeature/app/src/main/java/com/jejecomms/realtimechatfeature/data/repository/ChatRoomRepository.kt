@@ -2,8 +2,8 @@ package com.jejecomms.realtimechatfeature.data.repository
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import androidx.core.net.toUri
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.snapshots
@@ -11,6 +11,7 @@ import com.google.firebase.storage.FirebaseStorage
 import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomMemberEntity
 import com.jejecomms.realtimechatfeature.data.local.MessageDao
+import com.jejecomms.realtimechatfeature.data.local.ReadReceiptEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.data.model.MessageType
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOMS
@@ -18,12 +19,13 @@ import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
 import com.jejecomms.realtimechatfeature.utils.Constants.IMAGES
 import com.jejecomms.realtimechatfeature.utils.Constants.IMAGE_EXTENSION
 import com.jejecomms.realtimechatfeature.utils.Constants.MESSAGES
-import com.jejecomms.realtimechatfeature.utils.NetworkMonitor
+import com.jejecomms.realtimechatfeature.utils.NetworkMonitor.isOnline
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -103,27 +105,34 @@ class ChatRoomRepository(
      * @param message The ChatMessage object to be sent.
      */
     private suspend fun sendAndUpadteMessage(roomId: String, message: ChatMessageEntity) {
-        val isOnline = NetworkMonitor.isOnline()
+        // Check for the network status once, not as a continuous flow.
+        val isOnline = isOnline().first()
+
+        // If online, immediately try to send to Firestore.
         if (isOnline) {
-            // If online, immediately try to send to Firestore.
             try {
                 val messageRef = firebasFireStore.collection(CHAT_ROOMS)
                     .document(roomId)
                     .collection(MESSAGES)
                     .document(message.id)
 
-                // This will now throw an exception if the network call fails for a different reason
                 messageRef.set(message.copy(status = MessageStatus.SENT)).await()
 
                 // If the await() is successful, update the local database to SENT.
-                messageDao.updateMessage(message.copy(status = MessageStatus.SENT))
+                messageDao.updateMessage(
+
+                    message.copy(status = MessageStatus.SENT))
+                val recipientId = getRecipientId(roomId, message.senderId)
+                listenForDeliveryStatus(message.id, recipientId.toString())
             } catch (_: Exception) {
                 // If an unexpected error occurs during the online update,
                 // update the status to FAILED.
                 messageDao.updateMessage(message.copy(status = MessageStatus.FAILED))
             }
         } else {
-            // If offline, immediately update to Room Db with FAILED status.
+            // If offline, the message is already in the database with SENDING status.
+            // No need to update it again here unless we want to mark it as FAILED immediately.
+            // The network monitor will handle the retry.
             messageDao.updateMessage(message.copy(status = MessageStatus.FAILED))
         }
     }
@@ -143,8 +152,9 @@ class ChatRoomRepository(
             // Check message type and handle accordingly
             when (message.messageType) {
                 MessageType.TEXT -> {
-                   sendAndUpadteMessage(roomId,sendingMessage)
+                    sendAndUpadteMessage(roomId, sendingMessage)
                 }
+
                 MessageType.IMAGE -> {
                     // Re-upload image and re-send the message
                     val imageUri = message.imageUrl?.toUri()
@@ -155,14 +165,27 @@ class ChatRoomRepository(
                     val uploadTask = imageUri?.let { storageRef.putFile(it) }?.await()
                     val imageUrl = uploadTask?.storage?.downloadUrl?.await().toString()
                     val messageWithUrl = sendingMessage.copy(imageUrl = imageUrl)
-                    sendAndUpadteMessage(roomId,messageWithUrl)
+                    sendAndUpadteMessage(roomId, messageWithUrl)
                 }
             }
-        } catch (e: Exception) {
-            println("On retry: "+e.printStackTrace())
+        } catch (_: Exception) {
             // On failure, update the status back to FAILED
             messageDao.updateMessage(sendingMessage.copy(status = MessageStatus.FAILED))
         }
+    }
+
+    /**
+     * Retrieves all messages with a FAILED status from the local database.
+     */
+    fun getFailedMessages(): Flow<List<ChatMessageEntity>>  {
+       return messageDao.getMessagesByStatus(MessageStatus.FAILED.toString())
+    }
+
+    /**
+     * Retrieves all messages with a SENDING status from the local database as a continuous Flow.
+     */
+    fun getPendingMessages(): Flow<List<ChatMessageEntity>> {
+        return messageDao.getMessagesByStatus(MessageStatus.SENDING.toString())
     }
 
     /**
@@ -272,8 +295,20 @@ class ChatRoomRepository(
      * @param messages The list of messages to insert.
      */
     suspend fun insertMessages(messages: List<ChatMessageEntity>) {
-        withContext(Dispatchers.IO) {
-            messageDao.insertMessages(messages)
+        messages.forEach { remoteMessage ->
+            val existingMessage = messageDao.getMessageByClientGeneratedId(remoteMessage.clientGeneratedId)
+            if (existingMessage != null) {
+                // If the message already exists, update its status.
+                // This prevents duplicate messages and ensures the UI reflects the
+                // latest status from the server (e.g., DELIVERED).
+                messageDao.updateMessage(remoteMessage.copy(
+                    id = existingMessage.id,
+                    status = remoteMessage.status // Assuming Firestore provides the updated status (e.g., DELIVERED).
+                ))
+            } else {
+                // If the message is new, insert it.
+                messageDao.insertMessage(remoteMessage)
+            }
         }
     }
 
@@ -306,7 +341,8 @@ class ChatRoomRepository(
 
             // Monitor upload progress
             uploadTask.addOnProgressListener { taskSnapshot ->
-                val progress = (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount).toInt()
+                val progress =
+                    (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount).toInt()
                 onProgress(progress)
             }.await()
 
@@ -325,7 +361,7 @@ class ChatRoomRepository(
             messageDao.updateMessage(sentMessage)
             sendAndUpadteMessage(roomId, sentMessage)
 
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             //On failure, update the message status to FAILED, but PRESERVE the original local URI
             //to allow the image to be displayed.
             messageDao.updateMessage(message.copy(status = MessageStatus.FAILED))
@@ -355,8 +391,161 @@ class ChatRoomRepository(
                     }
                     return@withContext cacheFile.absolutePath
                 }
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+            }
             null
         }
+    }
+
+    /**
+     * Marks a message as delivered.
+     * If the Firestore update fails, the local message status is reverted to FAILED.
+     */
+    suspend fun markMessageAsDelivered(roomId: String, messageId: String) {
+        val localMessage = messageDao.getMessage(messageId)
+        if (localMessage == null) {
+            // Message not found locally, nothing to do.
+            return
+        }
+
+        try {
+            val messageRef = firebasFireStore.collection(CHAT_ROOMS)
+                .document(roomId)
+                .collection(MESSAGES)
+                .document(messageId)
+
+            // Update the message status in Firestore
+            messageRef.update("status", MessageStatus.DELIVERED).await()
+
+            // If the update is successful, update the local database
+            messageDao.updateMessage(localMessage.copy(status = MessageStatus.DELIVERED))
+
+        } catch (_: Exception) {
+            // If the network call fails, update the local database to FAILED
+            messageDao.updateMessage(localMessage.copy(status = MessageStatus.FAILED))
+        }
+    }
+
+    /**
+     * Marks a message as read by a specific user.
+     * This function now includes logic to handle network failures by storing a failed
+     * read receipt in a local table for later retry.
+     */
+    suspend fun markMessageAsRead(roomId: String, messageId: String, userId: String) {
+        try {
+            val messageRef = firebasFireStore.collection(CHAT_ROOMS)
+                .document(roomId)
+                .collection(MESSAGES)
+                .document(messageId)
+
+            // Add the user to the readBy list on Firestore
+            messageRef.update("readBy", FieldValue.arrayUnion(userId)).await()
+
+            // Fetch the updated document to check if all members have read the message
+            val updatedMessageDoc = messageRef.get().await()
+            val updatedMessage = updatedMessageDoc.toObject(ChatMessageEntity::class.java)
+
+            updatedMessage?.let {
+                val totalMembers = getGroupMembers(roomId).first().size
+                if (it.readBy.size >= totalMembers) {
+                    messageRef.update("status", MessageStatus.READ).await()
+                }
+
+                // Update local database with the new message status and readBy list
+                messageDao.updateMessage(it)
+            }
+        } catch (e: Exception) {
+            println("Error marking message as read on Firestore. Saving for retry.")
+            e.printStackTrace()
+
+            // On failure, insert a new ReadReceiptEntity into the local database
+            val failedReceipt = ReadReceiptEntity(
+                messageId = messageId,
+                userId = userId,
+                roomId = roomId
+            )
+            messageDao.insertReadReceipt(failedReceipt)
+
+            // Optionally, update the local message status to READ_FAILED
+            val localMessage = messageDao.getMessage(messageId)
+            localMessage?.let {
+                messageDao.updateMessage(it.copy(status = MessageStatus.READ_FAILED))
+            }
+        }
+    }
+
+    /**
+     * Retries sending all failed read receipts.
+     * This function should be called when a network connection is re-established.
+     */
+    suspend fun retryFailedReadReceipts() {
+        val failedReceipts = messageDao.getFailedReadReceipts()
+
+        failedReceipts.forEach { receipt ->
+            try {
+                // Attempt to update Firestore again
+                val messageRef = firebasFireStore.collection(CHAT_ROOMS)
+                    .document(receipt.roomId)
+                    .collection(MESSAGES)
+                    .document(receipt.messageId)
+
+                messageRef.update("readBy", FieldValue.arrayUnion(receipt.userId)).await()
+
+                // If successful, delete the receipt from the local database
+                messageDao.deleteReadReceipt(receipt.messageId, receipt.userId)
+
+                // The real-time listener will eventually update the local message entity's status
+                // from READ_FAILED to SENT/DELIVERED/READ.
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    /**
+     * This function listens for delivery receipts from Firebase for a specific message.
+     * It should be called immediately after a message is successfully sent.
+     */
+    fun listenForDeliveryStatus(messageId: String, recipientId: String) {
+        firebasFireStore.collection(CHAT_ROOMS)
+            .document(recipientId)
+            .collection(MESSAGES)
+            .document(messageId)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null && snapshot.exists()) {
+                    // A delivery receipt has been received.
+                    // Now, update the local database status.
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            messageDao.updateMessageStatus(messageId, MessageStatus.DELIVERED)
+                        } catch (_: Exception) {
+                        }
+                    }
+                }
+            }
+    }
+
+    /**
+     * Inserts or updates a message in the local database.
+     */
+    suspend fun upsertMessage(message: ChatMessageEntity) {
+        withContext(Dispatchers.IO) {
+            messageDao.upsert(message)
+        }
+    }
+
+    /**
+     * Finds the recipient's ID for a one-on-one chat.
+     *
+     * @param roomId The ID of the current chat room.
+     * @param senderId The ID of the current user (the sender).
+     * @return The ID of the recipient, or null if not found.
+     */
+    suspend fun getRecipientId(roomId: String, senderId: String): String? {
+        val members = getGroupMembers(roomId).first()
+        return members.find { it.senderId != senderId }?.senderId
     }
 }

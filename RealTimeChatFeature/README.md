@@ -201,7 +201,7 @@ data class ChatMessage(
     val senderId: String = "",       // ID of the user who sent the message (e.g., Firebase Auth UID)
     val senderName: String = "",     // Display name of the sender
     val text: String = "",           // The content of the message
-    val timestamp: Long = System.currentTimeMillis(), // Timestamp when the message was created (milliseconds)
+    val timestamp: Long = DateUtils.getTimestamp(), // Timestamp when the message was created (milliseconds)
     val status: MessageStatus = MessageStatus.SENDING, // Current status: SENDING, SENT, FAILED
     val isSystemMessage: Boolean = false // True for system-generated messages, false for user messages
 )

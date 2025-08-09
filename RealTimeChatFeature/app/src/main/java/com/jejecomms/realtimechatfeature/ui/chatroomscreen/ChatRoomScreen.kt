@@ -38,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
+import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.DateSeparator
 import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.MessageBubble
 import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.MessageInputField
@@ -135,6 +137,23 @@ fun ChatRoomScreen(
         if (!listState.isScrollInProgress && messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
         }
+    }
+
+    // Find the ID of the last visible message
+    LaunchedEffect(listState, messages) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .collect { lastVisibleIndex ->
+                if (lastVisibleIndex != null) {
+
+                    val message = messages.getOrNull(lastVisibleIndex)
+                    // Check if the message exists, is not from the current user,
+                    // and has not already been marked as read.
+                    if (message != null && message.senderId != currentSenderId
+                        && message.status != MessageStatus.READ) {
+                        chatRoomViewModel.markMessageAsRead(message, currentSenderId)
+                    }
+                }
+            }
     }
 
     Scaffold(
@@ -252,10 +271,7 @@ fun ChatRoomScreen(
                                 } else {
                                     MessageBubble(
                                         message = message,
-                                        isCurrentUser = message.senderId == currentSenderId,
-                                        onRetryClick = { msgToRetry ->
-                                            chatRoomViewModel.retrySendMessage(msgToRetry, roomId)
-                                        }
+                                        isCurrentUser = message.senderId == currentSenderId
                                     )
                                 }
                             }

@@ -3,6 +3,7 @@ package com.jejecomms.realtimechatfeature.data.local
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
+import com.jejecomms.realtimechatfeature.utils.DateUtils
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 
 /**
@@ -21,7 +22,7 @@ data class ChatRoomMemberEntity(
     val id: String = UuidGenerator.generateUniqueId(),
     val senderId: String = "",
     val senderName: String = "",
-    val timestamp: Long = System.currentTimeMillis(),
+    val timestamp: Long = DateUtils.getTimestamp(),
     val isGroupMember: Boolean = false,
     val roomId: String ="",
 )

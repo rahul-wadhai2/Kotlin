@@ -17,5 +17,25 @@ enum class MessageStatus {
     /**
      * Message sending failed.
      */
-    FAILED
+    FAILED,
+
+    /**
+     * Message has been delivered to the recipient.
+     */
+    DELIVERED,
+
+    /**
+     * Message has been pending for delivery.
+     */
+    PENDING,
+
+    /**
+     * Message has been read by the recipient.
+     */
+    READ,
+
+    /**
+     * Read receipt failed to send.
+     */
+    READ_FAILED
 }

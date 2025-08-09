@@ -15,6 +15,7 @@ import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME
 import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME_PREF
 import com.jejecomms.realtimechatfeature.utils.Constants.USER_JOINED_THE_CHAT_ROOM
 import com.jejecomms.realtimechatfeature.utils.Constants.YOU_HAVE_JOINED_THE_CHAT_ROOM
+import com.jejecomms.realtimechatfeature.utils.DateUtils
 import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 import kotlinx.coroutines.Job
@@ -31,7 +32,7 @@ import kotlinx.coroutines.launch
 class ChatRoomViewModel(
     private val chatRoomRepository: ChatRoomRepository,
     application: Application,
-    private val roomId: String
+    private val roomId: String,
 ) : AndroidViewModel(application) {
 
     /**
@@ -67,7 +68,7 @@ class ChatRoomViewModel(
     /**
      * State flow for the roomId check when entering in room.
      */
-    private val _isRoomExists =  MutableStateFlow<Boolean?>(null)
+    private val _isRoomExists = MutableStateFlow<Boolean?>(null)
 
     /**
      * Exposes the boolean is roomId exists as a StateFlow.
@@ -104,6 +105,15 @@ class ChatRoomViewModel(
     }
 
     /**
+     * Update a message's as a read status.
+     */
+    fun markMessageAsRead(message: ChatMessageEntity, userId: String) {
+        viewModelScope.launch {
+            chatRoomRepository.markMessageAsRead(message.roomId, message.id, userId)
+        }
+    }
+
+    /**
      * Encapsulates the long-running coroutines for data synchronization.
      */
     fun startDataCollectionAndSync(roomId: String) {
@@ -112,9 +122,24 @@ class ChatRoomViewModel(
         firestoreMessagesListenerJob = viewModelScope.launch {
             try {
                 chatRoomRepository.startFirestoreMessageListener(roomId).collect { remoteMessages ->
-                    chatRoomRepository.insertMessages(remoteMessages)
+                    remoteMessages.forEach { remoteMessage ->
+                        // Check if the message is from another user and is in the 'SENT' state.
+                        if (remoteMessage.senderId != currentSenderId
+                            && remoteMessage.status == MessageStatus.SENT) {
+                            // Mark the message as delivered.
+                            // This should only update the status, not replace the entire message.
+                            chatRoomRepository
+                                .markMessageAsDelivered(remoteMessage.roomId, remoteMessage.id)
+                        }
+
+                        // A new function is needed here to either insert a new message
+                        // or update an existing one without overwriting a more advanced status.
+                        // This function should be implemented repository and Dao.
+                        chatRoomRepository.upsertMessage(remoteMessage)
+                    }
                 }
-            } catch (_: Exception) { }
+            } catch (_: Exception) {
+            }
         }
 
         // Cancel any previous jobs and start the local database collector
@@ -167,9 +192,9 @@ class ChatRoomViewModel(
         if (text.isNotBlank()) {
             val newMessage = ChatMessageEntity(
                 senderId = senderId,
-                senderName = senderName?:SENDER_NAME,
+                senderName = senderName ?: SENDER_NAME,
                 text = text,
-                timestamp = System.currentTimeMillis(),
+                timestamp = DateUtils.getTimestamp(),
                 roomId = roomId,
                 messageType = MessageType.TEXT
             )
@@ -185,13 +210,16 @@ class ChatRoomViewModel(
      *
      * @param imageUri The URI of the image to send.
      */
-    fun sendImageMessage(currentSenderId: String,roomId: String, imageUri: Uri
-                         ,context: Context) {
+    fun sendImageMessage(
+        currentSenderId: String, roomId: String, imageUri: Uri,
+        context: Context,
+    ) {
         viewModelScope.launch {
             val messageId = UuidGenerator.generateUniqueId()
             //Save the image to a local cache and get its path
-            val localImagePath = chatRoomRepository.saveImageToCache(imageUri, messageId
-                ,context)
+            val localImagePath = chatRoomRepository.saveImageToCache(
+                imageUri, messageId, context
+            )
             // Create a temporary message entity for the image
             val imageMessage = ChatMessageEntity(
                 id = messageId,
@@ -200,7 +228,7 @@ class ChatRoomViewModel(
                 senderName = senderName ?: SENDER_NAME,
                 text = "",
                 imageUrl = localImagePath,// Handle only offline will logic change for online.
-                timestamp = System.currentTimeMillis(),
+                timestamp = DateUtils.getTimestamp(),
                 status = MessageStatus.SENDING,
                 messageType = MessageType.IMAGE
             )
@@ -222,19 +250,6 @@ class ChatRoomViewModel(
     }
 
     /**
-     * Retries sending a failed message.
-     * This function now handles both text and image messages.
-     *
-     * @param message The failed message to retry.
-     * @param roomId The ID of the chat room.
-     */
-    fun retrySendMessage(message: ChatMessageEntity, roomId: String) {
-        viewModelScope.launch {
-            chatRoomRepository.retrySingleMessage(roomId, message)
-        }
-    }
-
-    /**
      * Join a new member to the room.
      * This method should only be called once per user session.
      *
@@ -247,9 +262,9 @@ class ChatRoomViewModel(
             id = memberId,
             senderId = senderId,
             senderName = userName,
-            timestamp = System.currentTimeMillis(),
+            timestamp = DateUtils.getTimestamp(),
             isGroupMember = false,
-            roomId = ""
+            roomId = roomId
         )
 
         viewModelScope.launch {

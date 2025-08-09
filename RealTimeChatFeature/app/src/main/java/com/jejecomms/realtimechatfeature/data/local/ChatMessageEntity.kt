@@ -5,6 +5,7 @@ import androidx.room.PrimaryKey
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.data.model.MessageType
 import com.jejecomms.realtimechatfeature.utils.Constants.MESSAGES
+import com.jejecomms.realtimechatfeature.utils.DateUtils
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 
 /**
@@ -30,10 +31,13 @@ data class ChatMessageEntity(
     val senderId: String = "",
     val senderName: String = "",
     val text: String = "",
-    val timestamp: Long = System.currentTimeMillis(),
+    val timestamp: Long = DateUtils.getTimestamp(),
     val status: MessageStatus = MessageStatus.SENDING,
     val isSystemMessage: Boolean = false,
     val roomId: String = "",
     val messageType: MessageType = MessageType.TEXT,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val readBy: List<String> = emptyList(),
+    val deliveredAt: Long? = null,
+    val readAt: Long? = null
 )

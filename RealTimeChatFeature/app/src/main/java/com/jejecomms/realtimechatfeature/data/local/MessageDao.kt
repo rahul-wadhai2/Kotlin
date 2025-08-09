@@ -4,7 +4,9 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
+import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM
 import com.jejecomms.realtimechatfeature.utils.Constants.MESSAGES
 import kotlinx.coroutines.flow.Flow
@@ -42,7 +44,7 @@ interface MessageDao {
      * Retrieves messages by their status from the database.
      */
     @Query("SELECT * FROM $MESSAGES WHERE status = :status ORDER BY timestamp ASC")
-    suspend fun getMessagesByStatus(status: String): List<ChatMessageEntity>
+    fun getMessagesByStatus(status: String): Flow<List<ChatMessageEntity>>
 
     /**
      * Inserts a new message into the database of group members.
@@ -145,4 +147,69 @@ interface MessageDao {
      */
     @Query("SELECT * FROM $MESSAGES WHERE roomId = :roomId ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLastMessageForRoom(roomId: String): ChatMessageEntity?
+
+    /**
+     * Retrieves a message by its ID.
+     */
+    @Query("SELECT * FROM $MESSAGES WHERE id = :messageId")
+    suspend fun getMessage(messageId: String): ChatMessageEntity?
+
+    /**
+     * Retrieves a message by its ID Limit 1.
+     */
+    @Query("SELECT * FROM $MESSAGES WHERE id = :messageId LIMIT 1")
+    suspend fun getMessageById(messageId: String): ChatMessageEntity?
+
+    /**
+     * Insert a read receipt into the database.
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertReadReceipt(receipt: ReadReceiptEntity)
+
+    /**
+     * Get failed read receipts from the database.
+     */
+    @Query("SELECT * FROM failed_read_receipts")
+    suspend fun getFailedReadReceipts(): List<ReadReceiptEntity>
+
+    /**
+     * Delete a read receipt from the database.
+     */
+    @Query("DELETE FROM failed_read_receipts WHERE messageId = :messageId AND userId = :userId")
+    suspend fun deleteReadReceipt(messageId: String, userId: String)
+
+    /**
+     * Retrieves a message by its client-generated ID.
+     */
+    @Query("SELECT * FROM $MESSAGES WHERE clientGeneratedId = :clientGeneratedId")
+    suspend fun getMessageByClientGeneratedId(clientGeneratedId: String): ChatMessageEntity?
+
+    /**
+     * Updates the status of a message in the database.
+     */
+    @Query("UPDATE $MESSAGES SET status = :newStatus WHERE id = :messageId")
+    suspend fun updateMessageStatus(messageId: String, newStatus: MessageStatus)
+
+    /**
+     * A custom upsert function to prevent overwriting an advanced status.
+     * It first checks if the message exists locally. If not, it inserts it.
+     * If it does exist, it only updates it if the new message has a more advanced status.
+     */
+    @Transaction
+    suspend fun upsert(message: ChatMessageEntity) {
+        val existingMessage = getMessageById(message.id)
+        if (existingMessage == null) {
+            // Message does not exist locally, so insert it.
+            insertMessage(message)
+        } else {
+            // Message exists. Only update if the new status is SENT (or a new message is received).
+            // This prevents a DELIVERED or READ status from being overwritten.
+            if (message.status == MessageStatus.SENT || message.status == MessageStatus.FAILED) {
+                updateMessage(message)
+            } else if (message.imageUrl != null && existingMessage.imageUrl.isNullOrBlank()) {
+                updateMessage(message)
+            }
+        }
+    }
+
 }

@@ -13,6 +13,7 @@ import com.jejecomms.realtimechatfeature.data.local.MessageDao
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOMS
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
 import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME_PREF
+import com.jejecomms.realtimechatfeature.utils.DateUtils
 import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 import com.jejecomms.realtimechatfeature.workers.DeletionSyncWorker
@@ -135,7 +136,7 @@ class ChatRoomsRepository(
         val newChatRoom = ChatRoomEntity(
             roomId = chatRoomId,
             lastMessage = "",
-            lastTimestamp = System.currentTimeMillis(),
+            lastTimestamp = DateUtils.getTimestamp(),
             unreadCount = 0,
             isMuted = false,
             isArchived = false,
@@ -149,10 +150,14 @@ class ChatRoomsRepository(
             id = memberId,
             senderId = currentUserId,
             senderName = userName,
-            timestamp = System.currentTimeMillis(),
+            timestamp = DateUtils.getTimestamp(),
             isGroupMember = true,
             roomId = chatRoomId
         )
+
+        // Use a flag to track if the chat room was created successfully.
+        // This is crucial for the rollback logic.
+        var isChatRoomCreatedInFirestore = false
 
         return try {
             // Add the chat room to Firestore
@@ -160,6 +165,10 @@ class ChatRoomsRepository(
                 .document(chatRoomId) // Use the unique ID as the document ID
                 .set(newChatRoom)
                 .await()
+
+            // If the above line succeeds without throwing an exception,
+            // we can safely set our flag to true.
+            isChatRoomCreatedInFirestore = true
 
             // Add the creating user as a member to the chat room in Firestore
             firebasFireStore.collection(CHAT_ROOMS)
@@ -172,9 +181,13 @@ class ChatRoomsRepository(
             // If Firestore operations are successful, add to the local database
             messageDao.insertChatRoom(newChatRoom)
             messageDao.insertGroupMember(joinData)
-
             true
         } catch (_: Exception) {
+            if (isChatRoomCreatedInFirestore) {
+                try {
+                    deleteRoomFromFirestore(chatRoomId)
+                } catch (_: Exception) { }
+            }
             false
         }
     }

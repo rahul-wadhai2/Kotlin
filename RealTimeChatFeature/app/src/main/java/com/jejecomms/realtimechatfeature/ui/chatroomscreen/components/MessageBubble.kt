@@ -44,8 +44,7 @@ import com.jejecomms.realtimechatfeature.ui.theme.White
 @Composable
 fun MessageBubble(
     message: ChatMessageEntity,
-    isCurrentUser: Boolean,
-    onRetryClick: (ChatMessageEntity) -> Unit,
+    isCurrentUser: Boolean
 ) {
     /**
      * This colour is used to set the background color of the message bubble.
@@ -129,8 +128,7 @@ fun MessageBubble(
                         )
                         MessageStatusFooter(
                             message = message,
-                            isCurrentUser = isCurrentUser,
-                            onRetryClick = onRetryClick
+                            isCurrentUser = isCurrentUser
                         )
                     }
                 }
@@ -164,7 +162,6 @@ fun MessageBubble(
                             MessageStatusFooter(
                                 message = message,
                                 isCurrentUser = isCurrentUser,
-                                onRetryClick = onRetryClick,
                                 isOverlay = true,
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)

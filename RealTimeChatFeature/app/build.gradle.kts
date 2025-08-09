@@ -62,6 +62,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.firebase.messaging.ktx)
+    implementation(libs.gson)
     implementation(libs.androidx.room.runtime)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
