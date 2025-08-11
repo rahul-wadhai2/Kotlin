@@ -206,7 +206,7 @@ interface MessageDao {
             // This prevents a DELIVERED or READ status from being overwritten.
             if (message.status == MessageStatus.SENT || message.status == MessageStatus.FAILED) {
                 updateMessage(message)
-            } else if (message.imageUrl != null && existingMessage.imageUrl.isNullOrBlank()) {
+            } else if (message.url != null && existingMessage.url.isNullOrBlank()) {
                 updateMessage(message)
             }
         }

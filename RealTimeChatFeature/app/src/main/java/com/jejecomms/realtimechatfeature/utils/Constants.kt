@@ -54,6 +54,14 @@ object Constants {
 
     /*************************Firebase Collection*********************************/
     const val CHAT_ROOMS = "chatrooms"
+    const val DOCUMENTS = "documents"
     const val IMAGES = "images"
     const val IMAGE_EXTENSION = ".jpg"
+    const val DOCUMENT_EXTENSION = ".pdf"
+    const val AUDIO_EXTENSION = ".mp4"
+    /*************************Cache Folder Name*********************************/
+    const val CACHE_FOLDER_MAIN = "RealChatData"
+    const val CACHE_FOLDER_IMAGES = "Images"
+    const val CACHE_FOLDER_DOCUMENTS = "Documents"
+    const val CACHE_FOLDER_AUDIO = "Audio"
 }

@@ -1,6 +1,11 @@
 package com.jejecomms.realtimechatfeature.ui.chatroomscreen
 
+import android.Manifest
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
@@ -27,16 +32,19 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -51,6 +59,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
+import com.jejecomms.realtimechatfeature.data.model.MessageType
+import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.AttachmentOptionsBottomSheet
 import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.DateSeparator
 import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.MessageBubble
 import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.MessageInputField
@@ -59,6 +69,8 @@ import com.jejecomms.realtimechatfeature.ui.theme.DarkGreenTheme
 import com.jejecomms.realtimechatfeature.ui.theme.LightYellow
 import com.jejecomms.realtimechatfeature.ui.theme.White
 import com.jejecomms.realtimechatfeature.utils.DateUtils
+import com.jejecomms.realtimechatfeature.utils.PermissionUtils
+import kotlinx.coroutines.launch
 
 /**
  * Composable function for the chat screen.
@@ -126,7 +138,69 @@ fun ChatRoomScreen(
      */
     val messages = (uiState as? ChatScreenState.Content)?.messages ?: emptyList()
 
+    /**
+     * Get the context from the current composition.
+     */
     val context = LocalContext.current
+
+    /**
+     * Initialize the bottom sheet state.
+     */
+    val bottomSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
+
+    /**
+     * Initialize the coroutine scope.
+     */
+    val coroutineScope = rememberCoroutineScope()
+
+    /**
+     * Controls the visibility of the bottom sheet.
+     */
+    var showBottomSheet by remember { mutableStateOf(false) }
+
+    /**
+     * Initialize the image picker launcher.
+     */
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let { chatRoomViewModel.sendImageMessage(
+            currentSenderId, roomId, uri, context, MessageType.IMAGE)}
+    }
+
+    /**
+     * Initialize the document picker launcher.
+     */
+    val documentPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { chatRoomViewModel.sendImageMessage(
+            currentSenderId, roomId, uri, context, MessageType.DOCUMENT)}
+    }
+
+    /**
+     * Initialize the audio picker launcher.
+     */
+    val audioPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { chatRoomViewModel.sendImageMessage(
+            currentSenderId, roomId, uri, context, MessageType.AUDIO)}
+    }
+
+    /**
+     * Permission launcher for pre-Android 13
+     */
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            imagePickerLauncher.launch(PickVisualMediaRequest
+                (ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }
+    }
 
     /**
      * This LaunchedEffect will check the state of the list before trying to scroll.
@@ -139,7 +213,9 @@ fun ChatRoomScreen(
         }
     }
 
-    // Find the ID of the last visible message
+    /**
+     * Find the ID of the last visible message
+     */
     LaunchedEffect(listState, messages) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastVisibleIndex ->
@@ -149,11 +225,54 @@ fun ChatRoomScreen(
                     // Check if the message exists, is not from the current user,
                     // and has not already been marked as read.
                     if (message != null && message.senderId != currentSenderId
-                        && message.status != MessageStatus.READ) {
+                        && message.status != MessageStatus.READ
+                    ) {
                         chatRoomViewModel.markMessageAsRead(message, currentSenderId)
                     }
                 }
             }
+    }
+
+    // The bottom sheet is now a separate composable, shown conditionally
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showBottomSheet = false
+            },
+            sheetState = bottomSheetState,
+            containerColor = White
+        ) {
+            AttachmentOptionsBottomSheet(
+                onImageClick = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        imagePickerLauncher.launch(
+                            PickVisualMediaRequest.Builder()
+                                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                .build()
+                        )
+                    } else {
+                        PermissionUtils.checkAndRequestLegacyPermission(
+                            context = context,
+                            permissionLauncher = permissionLauncher,
+                            permission = Manifest.permission.READ_EXTERNAL_STORAGE,
+                            onPermissionGranted = {
+                                imagePickerLauncher
+                                    .launch(PickVisualMediaRequest(ActivityResultContracts
+                                        .PickVisualMedia.ImageOnly))
+                            }
+                        )
+                    }
+                    showBottomSheet = false
+                },
+                onDocumentClick = {
+                    documentPickerLauncher.launch("application/pdf")
+                    showBottomSheet = false
+                },
+                onAudioClick = {
+                    audioPickerLauncher.launch("audio/*")
+                    showBottomSheet = false
+                })
+        }
     }
 
     Scaffold(
@@ -206,7 +325,10 @@ fun ChatRoomScreen(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(text = stringResource(R.string.btn_exit_room), textAlign = TextAlign.Center)
+                        Text(
+                            text = stringResource(R.string.btn_exit_room),
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             } else {
@@ -222,14 +344,15 @@ fun ChatRoomScreen(
                         onSendMessage = { message ->
                             chatRoomViewModel.sendMessage(message, currentSenderId, roomId)
                         },
-                        onSendImage = { imageUri ->
-                            chatRoomViewModel.sendImageMessage(currentSenderId, roomId
-                                ,imageUri, context)
-                        },
                         modifier = Modifier
                             .navigationBarsPadding()
                             .imePadding()
-                            .padding(start = 6.dp, end = 6.dp, bottom = 6.dp)
+                            .padding(start = 6.dp, end = 6.dp, bottom = 6.dp),
+                        onAttachmentClick = {
+                            coroutineScope.launch {
+                                showBottomSheet = true
+                            }
+                        }
                     )
                 }
             }
@@ -255,7 +378,8 @@ fun ChatRoomScreen(
                         ) {
                             itemsIndexed(messages) { index, message ->
                                 // Determine if a date separator should be shown
-                                val previousMessageTimestamp = messages.getOrNull(index - 1)?.timestamp
+                                val previousMessageTimestamp =
+                                    messages.getOrNull(index - 1)?.timestamp
                                 val showDateSeparator = previousMessageTimestamp == null ||
                                         !DateUtils.isSameDay(
                                             previousMessageTimestamp,

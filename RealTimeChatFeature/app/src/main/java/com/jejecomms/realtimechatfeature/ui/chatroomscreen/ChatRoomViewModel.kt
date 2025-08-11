@@ -213,13 +213,13 @@ class ChatRoomViewModel(
     fun sendImageMessage(
         currentSenderId: String, roomId: String, imageUri: Uri,
         context: Context,
+        messageType: MessageType,
     ) {
         viewModelScope.launch {
             val messageId = UuidGenerator.generateUniqueId()
             //Save the image to a local cache and get its path
-            val localImagePath = chatRoomRepository.saveImageToCache(
-                imageUri, messageId, context
-            )
+            val localImagePath = chatRoomRepository.saveFileToCache(
+                imageUri, messageId, context, messageType)
             // Create a temporary message entity for the image
             val imageMessage = ChatMessageEntity(
                 id = messageId,
@@ -227,10 +227,10 @@ class ChatRoomViewModel(
                 senderId = currentSenderId,
                 senderName = senderName ?: SENDER_NAME,
                 text = "",
-                imageUrl = localImagePath,// Handle only offline will logic change for online.
+                url = localImagePath,// Handle only offline will logic change for online.
                 timestamp = DateUtils.getTimestamp(),
                 status = MessageStatus.SENDING,
-                messageType = MessageType.IMAGE
+                messageType = messageType
             )
 
             // Reset progress

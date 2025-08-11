@@ -1,5 +1,6 @@
 package com.jejecomms.realtimechatfeature.data.repository
 
+import android.bluetooth.BluetoothClass.Service.AUDIO
 import android.content.Context
 import android.net.Uri
 import androidx.core.net.toUri
@@ -14,8 +15,14 @@ import com.jejecomms.realtimechatfeature.data.local.MessageDao
 import com.jejecomms.realtimechatfeature.data.local.ReadReceiptEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.data.model.MessageType
+import com.jejecomms.realtimechatfeature.utils.Constants.AUDIO_EXTENSION
+import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_AUDIO
+import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_DOCUMENTS
+import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_IMAGES
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOMS
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
+import com.jejecomms.realtimechatfeature.utils.Constants.DOCUMENTS
+import com.jejecomms.realtimechatfeature.utils.Constants.DOCUMENT_EXTENSION
 import com.jejecomms.realtimechatfeature.utils.Constants.IMAGES
 import com.jejecomms.realtimechatfeature.utils.Constants.IMAGE_EXTENSION
 import com.jejecomms.realtimechatfeature.utils.Constants.MESSAGES
@@ -157,14 +164,36 @@ class ChatRoomRepository(
 
                 MessageType.IMAGE -> {
                     // Re-upload image and re-send the message
-                    val imageUri = message.imageUrl?.toUri()
+                    val imageUri = message.url?.toUri()
                     val storageRef = firebaseStorage.reference
                         .child("$CHAT_ROOMS/$roomId/$IMAGES/${message.id}$IMAGE_EXTENSION")
 
                     // Upload the file and get the download URL
                     val uploadTask = imageUri?.let { storageRef.putFile(it) }?.await()
                     val imageUrl = uploadTask?.storage?.downloadUrl?.await().toString()
-                    val messageWithUrl = sendingMessage.copy(imageUrl = imageUrl)
+                    val messageWithUrl = sendingMessage.copy(url = imageUrl)
+                    sendAndUpadteMessage(roomId, messageWithUrl)
+                }
+
+                MessageType.DOCUMENT -> {
+                    val fileUri = message.url?.toUri()
+                    val storagePath = "$CHAT_ROOMS/$roomId/$DOCUMENTS/${message.id}$DOCUMENT_EXTENSION"
+
+                    val storageRef = firebaseStorage.reference.child(storagePath)
+                    val uploadTask = fileUri?.let { storageRef.putFile(it) }?.await()
+                    val fileUrl = uploadTask?.storage?.downloadUrl?.await().toString()
+                    val messageWithUrl = sendingMessage.copy(url = fileUrl)
+                    sendAndUpadteMessage(roomId, messageWithUrl)
+                }
+
+                MessageType.AUDIO -> {
+                    val fileUri = message.url?.toUri()
+                    val storagePath = "$CHAT_ROOMS/$roomId/$AUDIO/${message.id}$AUDIO_EXTENSION"
+
+                    val storageRef = firebaseStorage.reference.child(storagePath)
+                    val uploadTask = fileUri?.let { storageRef.putFile(it) }?.await()
+                    val fileUrl = uploadTask?.storage?.downloadUrl?.await().toString()
+                    val messageWithUrl = sendingMessage.copy(url = fileUrl)
                     sendAndUpadteMessage(roomId, messageWithUrl)
                 }
             }
@@ -352,7 +381,7 @@ class ChatRoomRepository(
             //Create a new message with the persistent URL and SENT status
             val sentMessage = message.copy(
                 text = "",
-                imageUrl = downloadUrl,
+                url = downloadUrl,
                 status = MessageStatus.SENT,
                 messageType = MessageType.IMAGE
             )
@@ -375,13 +404,33 @@ class ChatRoomRepository(
      * @param context The application context.
      * @return The absolute path to the newly created local file, or null if it fails.
      */
-    suspend fun saveImageToCache(imageUri: Uri, messageId: String, context: Context): String? {
+    suspend fun saveFileToCache(
+        fileUri: Uri,
+        messageId: String,
+        context: Context,
+        messageType: MessageType
+    ): String? {
         return withContext(Dispatchers.IO) {
-            val cacheDir = context.cacheDir
-            val cacheFile = File(cacheDir, "$messageId.jpg")
+            val baseCacheDir = File(context.cacheDir, "RealChatData")
+            val subfolder = when (messageType) {
+                MessageType.IMAGE -> CACHE_FOLDER_IMAGES
+                MessageType.DOCUMENT -> CACHE_FOLDER_DOCUMENTS
+                MessageType.AUDIO -> CACHE_FOLDER_AUDIO
+                else -> "Others" // Fallback for unsupported types, though you might handle this differently
+            }
+            val targetDir = File(baseCacheDir, subfolder)
+            if (!targetDir.exists()) {
+                targetDir.mkdirs() // Create directories if they don't exist
+            }
+
+            val originalFileName = getFileNameFromUri(context, fileUri)
+            val fileExtension = originalFileName?.substringAfterLast('.', "")
+            val cacheFileName = "$messageId${fileExtension
+                ?.let { if (it.isNotEmpty()) ".$it" else "" }.orEmpty()}"
+            val cacheFile = File(targetDir, cacheFileName)
 
             try {
-                val inputStream: InputStream? = context.contentResolver.openInputStream(imageUri)
+                val inputStream: InputStream? = context.contentResolver.openInputStream(fileUri)
                 if (inputStream != null) {
                     val outputStream = FileOutputStream(cacheFile)
                     inputStream.use { input ->
@@ -391,10 +440,31 @@ class ChatRoomRepository(
                     }
                     return@withContext cacheFile.absolutePath
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                // Log the exception for debugging
+                e.printStackTrace()
             }
             null
         }
+    }
+
+    /**
+     * Helper function to get file name from Uri for caching.
+     */
+    fun getFileNameFromUri(context: Context, uri: Uri): String? {
+        val cursor = context.contentResolver.query(uri, null, null, null, null)
+        return cursor?.use {
+            if (it.moveToFirst()) {
+                val displayNameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (displayNameIndex != -1) {
+                    it.getString(displayNameIndex)
+                } else {
+                    null
+                }
+            } else {
+                null
+            }
+        } ?: uri.lastPathSegment
     }
 
     /**

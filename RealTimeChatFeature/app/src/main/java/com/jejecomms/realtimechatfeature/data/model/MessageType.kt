@@ -12,5 +12,15 @@ enum class MessageType {
     /**
      *  Message type for image messages.
      */
-    IMAGE
+    IMAGE,
+
+    /**
+     *  Message type for Pdf messages.
+     */
+    DOCUMENT,
+
+    /**
+     * Message type for audio messages.
+     */
+    AUDIO
 }

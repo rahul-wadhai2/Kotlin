@@ -3,16 +3,23 @@ package com.jejecomms.realtimechatfeature.ui.chatroomscreen.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -31,6 +39,7 @@ import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.data.model.MessageType
 import com.jejecomms.realtimechatfeature.ui.theme.LightGreen
 import com.jejecomms.realtimechatfeature.ui.theme.White
+import java.io.File
 
 /**
  * Composable function to display a single chat message bubble.
@@ -39,12 +48,11 @@ import com.jejecomms.realtimechatfeature.ui.theme.White
  *
  * @param message The ChatMessage object to display.
  * @param isCurrentUser Boolean indicating if the message was sent by the current user.
- * @param onRetryClick Lambda function to be invoked when the retry icon for a failed message is clicked.
  */
 @Composable
 fun MessageBubble(
     message: ChatMessageEntity,
-    isCurrentUser: Boolean
+    isCurrentUser: Boolean,
 ) {
     /**
      * This colour is used to set the background color of the message bubble.
@@ -98,6 +106,8 @@ fun MessageBubble(
 
     val context = LocalContext.current
 
+    val coroutineScope = rememberCoroutineScope()
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -134,7 +144,7 @@ fun MessageBubble(
                 }
 
                 MessageType.IMAGE -> {
-                    message.imageUrl?.let { imageUrl ->
+                    message.url?.let { imageUrl ->
                         Box(
                             modifier = Modifier
                                 .size(200.dp)
@@ -174,6 +184,43 @@ fun MessageBubble(
                             )
                         }
                     }
+                }
+
+                MessageType.DOCUMENT -> {
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
+                            contentDescription = "Document",
+                            tint = textColor,
+
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        message.url?.let { fileName ->
+                            Text(
+                                text =  File(fileName).name,
+                                color = textColor,
+                                fontSize = 14.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        // Status footer for document messages
+                        MessageStatusFooter(
+                            message = message,
+                            isCurrentUser = isCurrentUser,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                }
+
+                MessageType.AUDIO -> {
+                    AudioBubbleContent(message, textColor, isCurrentUser = isCurrentUser)
                 }
             }
         }

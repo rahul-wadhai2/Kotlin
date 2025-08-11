@@ -78,18 +78,19 @@ object PermissionUtils {
     fun checkAndRequestLegacyPermission(
         context: Context,
         permissionLauncher: ActivityResultLauncher<String>,
-        onPermissionGranted: () -> Unit
+        onPermissionGranted: () -> Unit,
+        permission: String
     ) {
         val isPermissionGranted = ContextCompat.checkSelfPermission(
             context,
-            Manifest.permission.READ_EXTERNAL_STORAGE
+            permission
         ) == PackageManager.PERMISSION_GRANTED
 
         if (isPermissionGranted) {
             onPermissionGranted()
         } else {
             // Request the appropriate permission
-            permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+            permissionLauncher.launch(permission)
         }
     }
 }
