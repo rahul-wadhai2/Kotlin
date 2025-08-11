@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path
-        name="my_files"
+        name="documents"
         path="RealChatData/Documents/" />
+    <cache-path
+        name="export_chat"
+        path="RealChatData/ExportChat/" />
 </paths>

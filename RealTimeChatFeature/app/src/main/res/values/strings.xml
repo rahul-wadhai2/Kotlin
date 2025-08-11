@@ -33,4 +33,6 @@
     <string name="des_chat_image">Image message</string>
     <string name="notification_permission_message">Please enable notifications in settings to receive new messages.</string>
     <string name="action_settings_label">Settings</string>
+    <string name="export_chat">Export Chat</string>
+    <string name="chat_exported_successfully">Chat exported successfully!</string>
 </resources>

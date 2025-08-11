@@ -25,9 +25,12 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +58,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
@@ -82,7 +86,7 @@ fun ChatRoomScreen(
     chatRoomViewModel: ChatRoomViewModel,
     currentSenderId: String,
     selectedChatRoom: ChatRoomEntity?,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
 ) {
     /**
      * Get the room ID from the selected chat room.
@@ -161,13 +165,21 @@ fun ChatRoomScreen(
     var showBottomSheet by remember { mutableStateOf(false) }
 
     /**
+     * State for the dropdown menu.
+     */
+    var showMenu by remember { mutableStateOf(false) }
+
+    /**
      * Initialize the image picker launcher.
      */
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
-        uri?.let { chatRoomViewModel.sendImageMessage(
-            currentSenderId, roomId, uri, context, MessageType.IMAGE)}
+        uri?.let {
+            chatRoomViewModel.sendImageMessage(
+                currentSenderId, roomId, uri, context, MessageType.IMAGE
+            )
+        }
     }
 
     /**
@@ -176,8 +188,11 @@ fun ChatRoomScreen(
     val documentPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let { chatRoomViewModel.sendImageMessage(
-            currentSenderId, roomId, uri, context, MessageType.DOCUMENT)}
+        uri?.let {
+            chatRoomViewModel.sendImageMessage(
+                currentSenderId, roomId, uri, context, MessageType.DOCUMENT
+            )
+        }
     }
 
     /**
@@ -186,8 +201,11 @@ fun ChatRoomScreen(
     val audioPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let { chatRoomViewModel.sendImageMessage(
-            currentSenderId, roomId, uri, context, MessageType.AUDIO)}
+        uri?.let {
+            chatRoomViewModel.sendImageMessage(
+                currentSenderId, roomId, uri, context, MessageType.AUDIO
+            )
+        }
     }
 
     /**
@@ -197,8 +215,10 @@ fun ChatRoomScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            imagePickerLauncher.launch(PickVisualMediaRequest
-                (ActivityResultContracts.PickVisualMedia.ImageOnly))
+            imagePickerLauncher.launch(
+                PickVisualMediaRequest
+                    (ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
         }
     }
 
@@ -257,8 +277,12 @@ fun ChatRoomScreen(
                             permission = Manifest.permission.READ_EXTERNAL_STORAGE,
                             onPermissionGranted = {
                                 imagePickerLauncher
-                                    .launch(PickVisualMediaRequest(ActivityResultContracts
-                                        .PickVisualMedia.ImageOnly))
+                                    .launch(
+                                        PickVisualMediaRequest(
+                                            ActivityResultContracts
+                                                .PickVisualMedia.ImageOnly
+                                        )
+                                    )
                             }
                         )
                     }
@@ -295,7 +319,40 @@ fun ChatRoomScreen(
                     containerColor = DarkGreenTheme,
                     titleContentColor = White
                 ),
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                actions = {
+                    IconButton(onClick = { showMenu = !showMenu }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More options",
+                            tint = White
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            text = {
+                                Text(
+                                    text = stringResource(R.string.export_chat),
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+                            },
+                            onClick = {
+                                showMenu = false
+                                // Trigger the export logic
+                                roomId.let { roomId ->
+                                    chatRoomViewModel.exportChat(roomId, context)
+                                }
+                            }
+                        )
+                    }
+                }
             )
         },
         containerColor = LightYellow,

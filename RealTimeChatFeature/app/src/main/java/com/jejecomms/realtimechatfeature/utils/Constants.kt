@@ -64,4 +64,5 @@ object Constants {
     const val CACHE_FOLDER_IMAGES = "Images"
     const val CACHE_FOLDER_DOCUMENTS = "Documents"
     const val CACHE_FOLDER_AUDIO = "Audio"
+    const val CACHE_FOLDER_EXPORT_CHAT = "ExportChat"
 }
