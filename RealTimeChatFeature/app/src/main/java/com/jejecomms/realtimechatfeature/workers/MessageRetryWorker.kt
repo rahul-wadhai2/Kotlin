@@ -24,9 +24,10 @@ class MessageRetryWorker(
         // SENT messages are waiting for a delivery receipt and should not be retried.
         val failedAndPendingMessages = combine(
             chatRoomRepository.getFailedMessages(),
-            chatRoomRepository.getPendingMessages()
-        ) { failed, pending ->
-            failed + pending
+            chatRoomRepository.getPendingMessages(),
+            chatRoomRepository.getSentMessages()
+        ) { failed, pending, sent->
+            failed + pending + sent
         }.first()
 
         var allRetriesSuccessful = true

@@ -126,9 +126,7 @@ class ChatRoomRepository(
                 messageRef.set(message.copy(status = MessageStatus.SENT)).await()
 
                 // If the await() is successful, update the local database to SENT.
-                messageDao.updateMessage(
-
-                    message.copy(status = MessageStatus.SENT))
+                messageDao.updateMessage(message.copy(status = MessageStatus.SENT))
                 val recipientId = getRecipientId(roomId, message.senderId)
                 listenForDeliveryStatus(message.id, recipientId.toString())
             } catch (_: Exception) {
@@ -215,6 +213,13 @@ class ChatRoomRepository(
      */
     fun getPendingMessages(): Flow<List<ChatMessageEntity>> {
         return messageDao.getMessagesByStatus(MessageStatus.SENDING.toString())
+    }
+
+    /**
+     * Retrieves all messages with a SENT status from the local database as a continuous Flow.
+     */
+    fun getSentMessages(): Flow<List<ChatMessageEntity>> {
+        return messageDao.getMessagesByStatus(MessageStatus.SENT.toString())
     }
 
     /**

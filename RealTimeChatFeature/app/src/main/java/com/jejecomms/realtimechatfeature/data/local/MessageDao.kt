@@ -98,7 +98,8 @@ interface MessageDao {
      * Get a flow of all chat rooms from the local Room database, including a count
      * of unread messages for each room.
      */
-    @Query("""
+    @Query(
+        """
         SELECT 
             T1.*,
             SUM(CASE WHEN T2.senderId != :currentUserId AND T2.timestamp > T1.lastReadTimestamp THEN 1 ELSE 0 END) AS unreadCount
@@ -107,7 +108,8 @@ interface MessageDao {
         WHERE T1.isDeletedLocally = 0
         GROUP BY T1.roomId
         ORDER BY T1.lastTimestamp DESC
-    """)
+    """
+    )
     fun getAllChatRoomsWithUnreadCount(currentUserId: String): Flow<List<ChatRoomEntity>>
 
     /**
@@ -157,7 +159,7 @@ interface MessageDao {
     /**
      * Retrieves a message by its ID Limit 1.
      */
-    @Query("SELECT * FROM $MESSAGES WHERE id = :messageId LIMIT 1")
+    @Query("SELECT * FROM $MESSAGES WHERE id = :messageId")
     suspend fun getMessageById(messageId: String): ChatMessageEntity?
 
     /**
@@ -190,6 +192,12 @@ interface MessageDao {
     @Query("UPDATE $MESSAGES SET status = :newStatus WHERE id = :messageId")
     suspend fun updateMessageStatus(messageId: String, newStatus: MessageStatus)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(message: ChatMessageEntity): Long
+
+    @Update(onConflict = OnConflictStrategy.ABORT)
+    suspend fun update(message: ChatMessageEntity)
+
     /**
      * A custom upsert function to prevent overwriting an advanced status.
      * It first checks if the message exists locally. If not, it inserts it.
@@ -197,19 +205,23 @@ interface MessageDao {
      */
     @Transaction
     suspend fun upsert(message: ChatMessageEntity) {
+        // First, check if the message already exists in the database
         val existingMessage = getMessageById(message.id)
+
         if (existingMessage == null) {
-            // Message does not exist locally, so insert it.
-            insertMessage(message)
+            // If it doesn't exist, insert the new message
+            insert(message)
         } else {
-            // Message exists. Only update if the new status is SENT (or a new message is received).
-            // This prevents a DELIVERED or READ status from being overwritten.
-            if (message.status == MessageStatus.SENT || message.status == MessageStatus.FAILED) {
-                updateMessage(message)
-            } else if (message.url != null && existingMessage.url.isNullOrBlank()) {
-                updateMessage(message)
+            // If it exists, update it, but only if the new status is more advanced
+            // and don't overwrite a delivered or read message with a sent one.
+            val finalStatus = if (existingMessage.status.ordinal > message.status.ordinal) {
+                existingMessage.status
+            } else {
+                message.status
             }
+
+            val messageToUpdate = message.copy(status = finalStatus)
+            update(messageToUpdate)
         }
     }
-
 }

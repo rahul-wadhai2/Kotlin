@@ -15,24 +15,24 @@ enum class MessageStatus {
     SENT,
 
     /**
-     * Message sending failed.
-     */
-    FAILED,
-
-    /**
      * Message has been delivered to the recipient.
      */
     DELIVERED,
 
     /**
-     * Message has been pending for delivery.
-     */
-    PENDING,
-
-    /**
      * Message has been read by the recipient.
      */
     READ,
+
+    /**
+     * Message sending failed.
+     */
+    FAILED,
+
+    /**
+     * Message has been pending for delivery.
+     */
+    PENDING,
 
     /**
      * Read receipt failed to send.
