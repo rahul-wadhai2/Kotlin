@@ -19,6 +19,7 @@ import com.jejecomms.realtimechatfeature.utils.Constants.AUDIO_EXTENSION
 import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_AUDIO
 import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_DOCUMENTS
 import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_IMAGES
+import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_MAIN
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOMS
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
 import com.jejecomms.realtimechatfeature.utils.Constants.DOCUMENTS
@@ -416,7 +417,7 @@ class ChatRoomRepository(
         messageType: MessageType
     ): String? {
         return withContext(Dispatchers.IO) {
-            val baseCacheDir = File(context.cacheDir, "RealChatData")
+            val baseCacheDir = File(context.cacheDir, CACHE_FOLDER_MAIN)
             val subfolder = when (messageType) {
                 MessageType.IMAGE -> CACHE_FOLDER_IMAGES
                 MessageType.DOCUMENT -> CACHE_FOLDER_DOCUMENTS
