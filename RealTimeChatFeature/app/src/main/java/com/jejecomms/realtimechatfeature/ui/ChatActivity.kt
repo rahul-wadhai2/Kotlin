@@ -10,8 +10,20 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
@@ -27,13 +39,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.jejecomms.realtimechatfeature.ChatApplication
+import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomRepository
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomsRepository
@@ -43,11 +61,13 @@ import com.jejecomms.realtimechatfeature.ui.chatroomscreen.ChatRoomViewModelFact
 import com.jejecomms.realtimechatfeature.ui.chatroomsscreen.ChatRoomsScreen
 import com.jejecomms.realtimechatfeature.ui.chatroomsscreen.ChatRoomsViewModel
 import com.jejecomms.realtimechatfeature.ui.chatroomsscreen.ChatRoomsViewModelFactory
+import com.jejecomms.realtimechatfeature.ui.theme.LightGreen
 import com.jejecomms.realtimechatfeature.ui.theme.RealTimeChatFeatureTheme
+import com.jejecomms.realtimechatfeature.ui.theme.White
 import com.jejecomms.realtimechatfeature.utils.Constants.EXTRA_ROOM_ID
 import com.jejecomms.realtimechatfeature.utils.Constants.KEY_SENDER_ID
 import com.jejecomms.realtimechatfeature.utils.PermissionUtils
-import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
+import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtils
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 
 /**
@@ -116,9 +136,9 @@ class ChatActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        currentSenderId = SharedPreferencesUtil.getString(KEY_SENDER_ID) ?: run {
+        currentSenderId = SharedPreferencesUtils.getString(KEY_SENDER_ID) ?: run {
             val newId = UuidGenerator.generateUniqueId()
-            SharedPreferencesUtil.putString(KEY_SENDER_ID, newId)
+            SharedPreferencesUtils.putString(KEY_SENDER_ID, newId)
             newId
         }
 
@@ -135,6 +155,9 @@ class ChatActivity : ComponentActivity() {
 
             // Collect the deep link chat room from the ViewModel
             val deepLinkRoom by chatRoomsViewModel.deepLinkChatRoom.collectAsState()
+
+            // State variable to manage the delete confirmation dialog
+            var showDeleteConfirmationDialog by remember { mutableStateOf<ChatRoomEntity?>(null) }
 
             // LaunchedEffect to navigate when the ViewModel provides a deep link room
             LaunchedEffect(deepLinkRoom) {
@@ -222,11 +245,70 @@ class ChatActivity : ComponentActivity() {
                                     // Call the ViewModel method to archive the chat room
                                 },
                                 onDelete = { chatRoom ->
-                                    chatRoomsViewModel.onDeleteChatRoom(chatRoom.roomId.toString())
+                                    showDeleteConfirmationDialog = chatRoom
+                                    //chatRoomsViewModel.onDeleteChatRoom(chatRoom.roomId.toString())
                                 },
                                 chatRoomsViewModel = chatRoomsViewModel,
                                 currentUserId = currentSenderId
                             )
+
+                            // Show the delete confirmation dialog
+                            // if a chat room is selected for deletion
+                            if (showDeleteConfirmationDialog != null) {
+                                Dialog(onDismissRequest = { showDeleteConfirmationDialog = null }) {
+                                    Card(
+                                        modifier = Modifier.padding(16.dp),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults
+                                            .cardColors(containerColor = White)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(16.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                text = stringResource(R.string.delete_confirmation),
+                                                style = MaterialTheme.typography.titleMedium
+                                            )
+                                            Spacer(modifier = Modifier.height(16.dp))
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.End
+                                            ) {
+                                                Button(
+                                                    onClick = {
+                                                        showDeleteConfirmationDialog = null
+                                                    },
+                                                    colors = ButtonDefaults
+                                                        .buttonColors(containerColor =
+                                                            Color.LightGray)
+                                                ) {
+                                                    Text(
+                                                        stringResource(R.string.cancel),
+                                                        color = Color.Black
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Button(
+                                                    onClick = {
+                                                        showDeleteConfirmationDialog
+                                                            ?.let { chatRoom ->
+                                                            chatRoomsViewModel
+                                                                .onDeleteChatRoom(chatRoom
+                                                                    .roomId.toString())
+                                                        }
+                                                        showDeleteConfirmationDialog = null
+                                                    },
+                                                    colors = ButtonDefaults
+                                                        .buttonColors(containerColor = LightGreen)
+                                                ) {
+                                                    Text(stringResource(R.string.ok))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         } else {
                             val chatRoomViewModel: ChatRoomViewModel = viewModel(
                                 factory = ChatRoomViewModelFactory(

@@ -7,14 +7,16 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.QuerySnapshot
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomMemberEntity
 import com.jejecomms.realtimechatfeature.data.local.MessageDao
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOMS
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
+import com.jejecomms.realtimechatfeature.utils.Constants.MESSAGES
 import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME_PREF
 import com.jejecomms.realtimechatfeature.utils.DateUtils
-import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
+import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtils
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 import com.jejecomms.realtimechatfeature.workers.DeletionSyncWorker
 import kotlinx.coroutines.Dispatchers
@@ -66,6 +68,10 @@ class ChatRoomsRepository(
     suspend fun insertRooms(rooms: List<ChatRoomEntity>) {
         withContext(Dispatchers.IO) {
             rooms.forEach { room ->
+                val deletedChatRoom = messageDao.getDeletionStatus(room.roomId.toString())
+                if (deletedChatRoom == true) {
+                    return@forEach
+                }
                 val existingRoom = messageDao.getChatRoomById(room.roomId.toString())
                 if (existingRoom != null) {
                     val updatedRoom = room.copy(lastReadTimestamp = existingRoom.lastReadTimestamp)
@@ -128,7 +134,7 @@ class ChatRoomsRepository(
             return false
         }
 
-        SharedPreferencesUtil.putString(SENDER_NAME_PREF, userName)
+        SharedPreferencesUtils.putString(SENDER_NAME_PREF, userName)
 
         val chatRoomId = UuidGenerator.generateUniqueId()
         val memberId = UuidGenerator.generateUniqueId()
@@ -233,10 +239,52 @@ class ChatRoomsRepository(
     }
 
     /**
-     * Deletes a chat room from the local database.
+     * Deletes a chat room messages from the local database.
      */
-    suspend fun deleteRoomFromLocalDb(roomId: String) {
-        messageDao.deleteChatRoom(roomId)
+    suspend fun deleteUserData(roomId: String, currentUserId: String) {
+        withContext(Dispatchers.IO) {
+            messageDao.deleteMessages(roomId, currentUserId)
+            messageDao.deleteFailedReadReceipts(roomId, currentUserId)
+            messageDao.deleteChatRoomMembers(roomId, currentUserId)
+        }
+    }
+
+    /**
+     * Deletes a user room data from Firestore.
+     */
+    suspend fun deleteUserDataFromFireStore(roomId: String, senderId: String) {
+        try {
+            // Get a reference to the chat room document
+            val chatRoomRef = firebasFireStore.collection(CHAT_ROOMS).document(roomId)
+
+            // Get only the documents from the 'messages' subcollection where senderId matches
+            val messagesSnapshot: QuerySnapshot = chatRoomRef.collection(MESSAGES)
+                .whereEqualTo("senderId", senderId)
+                .get()
+                .await()
+
+            // Get all documents from the 'chat_room_members' subcollection
+            val membersSnapshot: QuerySnapshot = chatRoomRef.collection(CHAT_ROOM_MEMBERS)
+                .whereEqualTo("senderId", senderId)
+                .get()
+                .await()
+
+            // Create a new batch
+            val batch = firebasFireStore.batch()
+
+            // Add filtered messages to the batch for deletion
+            for (document in messagesSnapshot.documents) {
+                batch.delete(document.reference)
+            }
+
+            // Add all members to the batch for deletion
+            for (document in membersSnapshot.documents) {
+                batch.delete(document.reference)
+            }
+
+            // Commit the batch to perform all deletions
+            batch.commit().await()
+        } catch (_: Exception) { }
     }
 
     /**

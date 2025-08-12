@@ -51,6 +51,7 @@ object Constants {
     const val CHAT_ROOM = "chat_room"
     const val CHAT_ROOM_MEMBERS = "chat_room_members"
     const val MESSAGES = "messages"
+    const val FAILED_READ_RECEIPTS = "failed_read_receipts"
 
     /*************************Firebase Collection*********************************/
     const val CHAT_ROOMS = "chatrooms"
@@ -59,6 +60,7 @@ object Constants {
     const val IMAGE_EXTENSION = ".jpg"
     const val DOCUMENT_EXTENSION = ".pdf"
     const val AUDIO_EXTENSION = ".mp4"
+
     /*************************Cache Folder Name*********************************/
     const val CACHE_FOLDER_MAIN = "RealChatData"
     const val CACHE_FOLDER_IMAGES = "Images"

@@ -176,7 +176,7 @@ fun ChatRoomScreen(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         uri?.let {
-            chatRoomViewModel.sendImageMessage(
+            chatRoomViewModel.sendMultipleFileTypeMessage(
                 currentSenderId, roomId, uri, context, MessageType.IMAGE
             )
         }
@@ -189,7 +189,7 @@ fun ChatRoomScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            chatRoomViewModel.sendImageMessage(
+            chatRoomViewModel.sendMultipleFileTypeMessage(
                 currentSenderId, roomId, uri, context, MessageType.DOCUMENT
             )
         }
@@ -202,7 +202,7 @@ fun ChatRoomScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            chatRoomViewModel.sendImageMessage(
+            chatRoomViewModel.sendMultipleFileTypeMessage(
                 currentSenderId, roomId, uri, context, MessageType.AUDIO
             )
         }

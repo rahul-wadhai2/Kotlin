@@ -7,7 +7,7 @@ import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomsRepository
 import com.jejecomms.realtimechatfeature.utils.Constants.KEY_SENDER_ID
-import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
+import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -84,7 +84,7 @@ class ChatRoomsViewModel(
 
         // Launch a coroutine to collect the CORRECT flow with unread count
         viewModelScope.launch {
-            val currentSenderId = SharedPreferencesUtil.getString(KEY_SENDER_ID)
+            val currentSenderId = SharedPreferencesUtils.getString(KEY_SENDER_ID)
             chatRoomsRepository.getAllChatRoomsWithUnreadCount(currentSenderId.toString())
                 .collect { chatRooms ->
                     // For each chat room, fetch the last message

@@ -305,11 +305,11 @@ class ChatRoomRepository(
     suspend fun checkIfRoomIdExists(roomId: String): Boolean {
         return try {
             val querySnapshot = firebasFireStore.collection(CHAT_ROOMS)
-                .whereEqualTo("roomId", roomId)
+                .document(roomId)
                 .get()
                 .await()
 
-            val exists = !querySnapshot.isEmpty
+            val exists = querySnapshot.exists()
 
             // If the room does not exist in Firestore, delete it from the local database
             if (!exists) {
@@ -324,30 +324,6 @@ class ChatRoomRepository(
     }
 
     /**
-     * Inserts a list of messages into the local Room database.
-     * It uses OnConflictStrategy.REPLACE to handle updates.
-     *
-     * @param messages The list of messages to insert.
-     */
-    suspend fun insertMessages(messages: List<ChatMessageEntity>) {
-        messages.forEach { remoteMessage ->
-            val existingMessage = messageDao.getMessageByClientGeneratedId(remoteMessage.clientGeneratedId)
-            if (existingMessage != null) {
-                // If the message already exists, update its status.
-                // This prevents duplicate messages and ensures the UI reflects the
-                // latest status from the server (e.g., DELIVERED).
-                messageDao.updateMessage(remoteMessage.copy(
-                    id = existingMessage.id,
-                    status = remoteMessage.status // Assuming Firestore provides the updated status (e.g., DELIVERED).
-                ))
-            } else {
-                // If the message is new, insert it.
-                messageDao.insertMessage(remoteMessage)
-            }
-        }
-    }
-
-    /**
      * Updates the last read timestamp for a room in the local database.
      */
     suspend fun updateLastReadTimestamp(roomId: String, timestamp: Long) {
@@ -357,9 +333,10 @@ class ChatRoomRepository(
     }
 
     /**
-     * Sends an image message by uploading the image to Firebase Storage first.
+     * Sends multiple file type of message by uploading the file/Image/Audio
+     * to Firebase Storage first.
      */
-    suspend fun sendImageMessage(
+    suspend fun sendMultipleFileTypeMessage(
         roomId: String,
         message: ChatMessageEntity,
         imageUri: Uri,
@@ -368,6 +345,7 @@ class ChatRoomRepository(
         //Insert the initial message into the local DB with 'SENDING' status and local URI
         messageDao.insertMessage(message)
         val storageRef = firebaseStorage.reference
+        // Note: Need to handle here for different message types
         val imageRef = storageRef.child("$CHAT_ROOMS/$roomId/$IMAGES/${message.id}$IMAGE_EXTENSION")
 
         try {

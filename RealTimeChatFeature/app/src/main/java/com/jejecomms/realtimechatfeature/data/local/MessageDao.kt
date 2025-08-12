@@ -8,6 +8,8 @@ import androidx.room.Transaction
 import androidx.room.Update
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM
+import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
+import com.jejecomms.realtimechatfeature.utils.Constants.FAILED_READ_RECEIPTS
 import com.jejecomms.realtimechatfeature.utils.Constants.MESSAGES
 import kotlinx.coroutines.flow.Flow
 
@@ -95,6 +97,24 @@ interface MessageDao {
     suspend fun deleteChatRoom(roomId: String)
 
     /**
+     * Method to delete a room messages from the local database.
+     */
+    @Query("DELETE FROM $MESSAGES WHERE roomId = :roomId AND senderId = :senderId")
+    suspend fun deleteMessages(roomId: String, senderId: String)
+
+    /**
+     * Method to delete a room failed read receipts from the local database.
+     */
+    @Query("DELETE FROM $FAILED_READ_RECEIPTS WHERE roomId = :roomId AND userId = :senderId")
+    suspend fun deleteFailedReadReceipts(roomId: String, senderId: String)
+
+    /**
+     * Method to delete a room member from the local database.
+     */
+    @Query("DELETE FROM $CHAT_ROOM_MEMBERS WHERE roomId = :roomId AND senderId = :senderId")
+    suspend fun deleteChatRoomMembers(roomId: String, senderId: String)
+
+    /**
      * Get a flow of all chat rooms from the local Room database, including a count
      * of unread messages for each room.
      */
@@ -130,6 +150,12 @@ interface MessageDao {
      */
     @Query("SELECT * FROM $CHAT_ROOM WHERE roomId = :roomId LIMIT 1")
     suspend fun getChatRoomById(roomId: String): ChatRoomEntity?
+
+    /**
+     * Get a delete status of single chat room by its ID.
+     */
+    @Query("SELECT isDeletedLocally FROM $CHAT_ROOM WHERE roomId = :roomId LIMIT 1")
+    suspend fun getDeletionStatus(roomId: String): Boolean?
 
     /**
      * Updates the last read timestamp for ALL chat rooms to the current time.

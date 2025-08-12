@@ -23,7 +23,7 @@ import com.jejecomms.realtimechatfeature.utils.Constants.USER_JOINED_THE_CHAT_RO
 import com.jejecomms.realtimechatfeature.utils.Constants.YOU_HAVE_JOINED_THE_CHAT_ROOM
 import com.jejecomms.realtimechatfeature.utils.DateUtils
 import com.jejecomms.realtimechatfeature.utils.DateUtils.getTimestamp
-import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
+import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtils
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -59,12 +59,12 @@ class ChatRoomViewModel(
     /**
      * Retrieves the sender ID from SharedPreferences.
      */
-    val currentSenderId = SharedPreferencesUtil.getString(KEY_SENDER_ID)
+    val currentSenderId = SharedPreferencesUtils.getString(KEY_SENDER_ID)
 
     /**
      * Retrieves the sender name from SharedPreferences.
      */
-    val senderName = SharedPreferencesUtil.getString(SENDER_NAME_PREF)
+    val senderName = SharedPreferencesUtils.getString(SENDER_NAME_PREF)
 
     /**
      * Job for the Firestore listener for messages.
@@ -107,7 +107,7 @@ class ChatRoomViewModel(
     private fun checkIfUserHasJoined() {
         viewModelScope.launch {
             currentSenderId?.let {
-                val senderName = SharedPreferencesUtil.getString(SENDER_NAME_PREF) ?: SENDER_NAME
+                val senderName = SharedPreferencesUtils.getString(SENDER_NAME_PREF) ?: SENDER_NAME
                 if (!chatRoomRepository.hasJoinTheGroup(roomId, it)) {
                     joinMemberToRoom(it, senderName, roomId)
                 }
@@ -206,10 +206,9 @@ class ChatRoomViewModel(
                 senderId = senderId,
                 senderName = senderName ?: SENDER_NAME,
                 text = text,
-                timestamp = DateUtils.getTimestamp(),
+                timestamp = getTimestamp(),
                 roomId = roomId,
-                messageType = MessageType.TEXT
-            )
+                messageType = MessageType.TEXT)
 
             viewModelScope.launch {
                 chatRoomRepository.sendMessage(roomId, newMessage)
@@ -218,12 +217,12 @@ class ChatRoomViewModel(
     }
 
     /**
-     * Handles sending image messages.
+     * Handles sending multiple file type messages.
      *
      * @param imageUri The URI of the image to send.
      */
-    fun sendImageMessage(
-        currentSenderId: String, roomId: String, imageUri: Uri,
+    fun sendMultipleFileTypeMessage(
+        currentSenderId: String, roomId: String, uri: Uri,
         context: Context,
         messageType: MessageType,
     ) {
@@ -231,7 +230,7 @@ class ChatRoomViewModel(
             val messageId = UuidGenerator.generateUniqueId()
             //Save the image to a local cache and get its path
             val localImagePath = chatRoomRepository.saveFileToCache(
-                imageUri, messageId, context, messageType
+                uri, messageId, context, messageType
             )
             // Create a temporary message entity for the image
             val imageMessage = ChatMessageEntity(
@@ -250,10 +249,10 @@ class ChatRoomViewModel(
             _imageUploadProgress.value = 0
 
             // Start the upload process
-            chatRoomRepository.sendImageMessage(
+            chatRoomRepository.sendMultipleFileTypeMessage(
                 roomId = roomId,
                 message = imageMessage,
-                imageUri = imageUri,
+                imageUri = uri,
                 onProgress = { progress ->
                     // Update progress state for the UI
                     _imageUploadProgress.value = progress

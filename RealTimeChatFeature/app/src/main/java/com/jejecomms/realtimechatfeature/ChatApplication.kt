@@ -14,7 +14,7 @@ import com.jejecomms.realtimechatfeature.data.local.ChatDatabase
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomRepository
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomsRepository
 import com.jejecomms.realtimechatfeature.utils.NetworkMonitor
-import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtil
+import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtils
 import com.jejecomms.realtimechatfeature.workers.MessageRetryWorker
 import com.jejecomms.realtimechatfeature.workers.TimestampInitializationWorker
 import kotlinx.coroutines.CoroutineScope
@@ -69,7 +69,7 @@ class ChatApplication : Application() {
         // Initialize Firebase.
         FirebaseApp.initializeApp(this)
         // Initialize SharedPreferencesUtil
-        SharedPreferencesUtil.init(applicationContext)
+        SharedPreferencesUtils.init(applicationContext)
         // Initialize NetworkMonitor
         NetworkMonitor.init(applicationContext)
 

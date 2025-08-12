@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.jejecomms.realtimechatfeature.ChatApplication
+import com.jejecomms.realtimechatfeature.utils.Constants.KEY_SENDER_ID
 import com.jejecomms.realtimechatfeature.utils.NetworkMonitor.isOnline
+import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtils
 import kotlinx.coroutines.flow.first
 
 /**
@@ -18,6 +20,7 @@ class DeletionSyncWorker(
     override suspend fun doWork(): Result {
         val chatRoomsRepository = (applicationContext as ChatApplication).chatRoomsRepository
         val locallyDeletedRooms = chatRoomsRepository.getLocallyDeletedRoomsForSync()
+        val senderId = SharedPreferencesUtils.getString(KEY_SENDER_ID)
 
         if (locallyDeletedRooms.isEmpty()) {
             return Result.success()
@@ -34,8 +37,9 @@ class DeletionSyncWorker(
 
         locallyDeletedRooms.forEach { room ->
             try {
-                chatRoomsRepository.deleteRoomFromFirestore(room.roomId.toString())
-                chatRoomsRepository.deleteRoomFromLocalDb(room.roomId.toString())
+                chatRoomsRepository.deleteUserDataFromFireStore(room.roomId.toString()
+                    ,senderId.toString())
+                chatRoomsRepository.deleteUserData(room.roomId.toString(), senderId.toString())
             } catch (_: Exception) {
                 // If the Firestore deletion fails for a network reason, WorkManager will handle the retry
                 return Result.retry()

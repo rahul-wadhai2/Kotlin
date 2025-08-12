@@ -35,4 +35,7 @@
     <string name="action_settings_label">Settings</string>
     <string name="export_chat">Export Chat</string>
     <string name="chat_exported_successfully">Chat exported successfully!</string>
+    <string name="delete_confirmation">Are you sure you want to delete this chatroom?</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
 </resources>
