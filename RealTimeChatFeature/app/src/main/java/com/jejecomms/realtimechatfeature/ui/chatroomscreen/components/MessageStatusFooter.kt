@@ -15,9 +15,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
+import com.jejecomms.realtimechatfeature.R
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatMessageEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.ui.theme.Violet
 import com.jejecomms.realtimechatfeature.ui.theme.White
@@ -58,7 +60,7 @@ fun MessageStatusFooter(
             if (message.readBy.isNotEmpty()) {
                 Icon(
                     imageVector = Icons.Default.DoneAll,
-                    contentDescription = "Read",
+                    contentDescription = stringResource(R.string.des_read),
                     tint = Violet,
                     modifier = Modifier.size(16.dp)
                 )
@@ -67,36 +69,34 @@ fun MessageStatusFooter(
 
                     MessageStatus.SENDING -> Icon(
                         imageVector = Icons.Default.Schedule,
-                        contentDescription = "Sending",
+                        contentDescription = stringResource(R.string.des_sending),
                         tint = timeColor,
                         modifier = Modifier.size(16.dp)
                     )
 
                     MessageStatus.SENT -> Icon(
                         imageVector = Icons.Default.Done,
-                        contentDescription = "Sent",
+                        contentDescription = stringResource(R.string.des_sent),
                         tint = White,
                         modifier = Modifier.size(16.dp)
                     )
 
                     MessageStatus.DELIVERED -> Icon(
                         imageVector = Icons.Default.DoneAll,
-                        contentDescription = "Delivered",
+                        contentDescription = stringResource(R.string.des_delivered),
                         tint = White,
                         modifier = Modifier.size(16.dp)
                     )
 
                     MessageStatus.FAILED -> Icon(
                         imageVector = Icons.Default.Warning,
-                        contentDescription = "Retry",
+                        contentDescription = stringResource(R.string.des_failed),
                         tint = Color.Red,
                         modifier = Modifier
                             .size(16.dp)
                     )
 
-                    else -> {
-
-                    }
+                    else -> {}
                 }
             }
         }

@@ -9,13 +9,15 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.jejecomms.realtimechatfeature.R
-import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
-import com.jejecomms.realtimechatfeature.data.local.ChatRoomMemberEntity
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatMessageEntity
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomMemberEntity
+import com.jejecomms.realtimechatfeature.data.local.entity.UsersEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.data.model.MessageType
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomRepository
 import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_EXPORT_CHAT
 import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_MAIN
+import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_ROLE_MEMBER
 import com.jejecomms.realtimechatfeature.utils.Constants.KEY_SENDER_ID
 import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME
 import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME_PREF
@@ -96,24 +98,28 @@ class ChatRoomViewModel(
      */
     val imageUploadProgress: StateFlow<Int> = _imageUploadProgress.asStateFlow()
 
+    private val _members = MutableStateFlow<List<UsersEntity>>(emptyList())
+
+    val members: StateFlow<List<UsersEntity>> = _members.asStateFlow()
+
     init {
-        checkIfUserHasJoined()
+        //checkIfUserHasJoined()
         updateLastReadTimestamp()
     }
 
     /**
      * Checks if the user has joined the room and joins them if not.
      */
-    private fun checkIfUserHasJoined() {
-        viewModelScope.launch {
-            currentSenderId?.let {
-                val senderName = SharedPreferencesUtils.getString(SENDER_NAME_PREF) ?: SENDER_NAME
-                if (!chatRoomRepository.hasJoinTheGroup(roomId, it)) {
-                    joinMemberToRoom(it, senderName, roomId)
-                }
-            }
-        }
-    }
+//    private fun checkIfUserHasJoined() {
+//        viewModelScope.launch {
+//            currentSenderId?.let {
+//                val senderName = SharedPreferencesUtils.getString(SENDER_NAME_PREF) ?: SENDER_NAME
+//                if (!chatRoomRepository.hasJoinTheGroup(roomId, it)) {
+//                    joinMemberToRoom(it, senderName, roomId)
+//                }
+//            }
+//        }
+//    }
 
     /**
      * Update a message's as a read status.
@@ -164,17 +170,17 @@ class ChatRoomViewModel(
                     chatRoomRepository.getGroupMembers(roomId)
                 ) { chatMessages, groupMembers ->
                     val joinMessages = groupMembers.map { member ->
-                        val joinMessageText = if (member.senderId == currentSenderId) {
+                        val joinMessageText = if (member.userId == currentSenderId) {
                             YOU_HAVE_JOINED_THE_CHAT_ROOM
                         } else {
-                            "${member.senderName} $USER_JOINED_THE_CHAT_ROOM"
+                            "${member.userName} $USER_JOINED_THE_CHAT_ROOM"
                         }
                         ChatMessageEntity(
                             id = member.id,
-                            senderId = member.senderId,
-                            senderName = member.senderName,
+                            senderId = member.userId,
+                            senderName = member.userName,
                             text = joinMessageText,
-                            timestamp = member.timestamp,
+                            timestamp = member.joinedAt,
                             isSystemMessage = true,
                             roomId = roomId,
                             messageType = MessageType.TEXT
@@ -184,7 +190,8 @@ class ChatRoomViewModel(
                 }.collect { combinedMessages ->
                     _uiState.value = ChatScreenState.Content(combinedMessages)
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
 
@@ -240,7 +247,7 @@ class ChatRoomViewModel(
                 senderName = senderName ?: SENDER_NAME,
                 text = "",
                 url = localImagePath,// Handle only offline will logic change for online.
-                timestamp = DateUtils.getTimestamp(),
+                timestamp = getTimestamp(),
                 status = MessageStatus.SENDING,
                 messageType = messageType
             )
@@ -272,11 +279,11 @@ class ChatRoomViewModel(
         val memberId = UuidGenerator.generateUniqueId()
         val joinData = ChatRoomMemberEntity(
             id = memberId,
-            senderId = senderId,
-            senderName = userName,
-            timestamp = DateUtils.getTimestamp(),
-            isGroupMember = false,
-            roomId = roomId
+            userId = senderId,
+            userName = userName,
+            joinedAt = getTimestamp(),
+            roomId = roomId,
+            role = CHAT_ROOM_ROLE_MEMBER
         )
 
         viewModelScope.launch {

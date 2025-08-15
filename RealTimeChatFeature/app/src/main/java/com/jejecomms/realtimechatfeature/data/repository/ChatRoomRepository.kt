@@ -9,10 +9,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.snapshots
 import com.google.firebase.storage.FirebaseStorage
-import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
-import com.jejecomms.realtimechatfeature.data.local.ChatRoomMemberEntity
-import com.jejecomms.realtimechatfeature.data.local.MessageDao
-import com.jejecomms.realtimechatfeature.data.local.ReadReceiptEntity
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatMessageEntity
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomMemberEntity
+import com.jejecomms.realtimechatfeature.data.local.dao.MessageDao
+import com.jejecomms.realtimechatfeature.data.local.entity.ReadReceiptEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.data.model.MessageType
 import com.jejecomms.realtimechatfeature.utils.Constants.AUDIO_EXTENSION
@@ -22,6 +22,7 @@ import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_IMAGES
 import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_MAIN
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOMS
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
+import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_ROLE_MEMBER
 import com.jejecomms.realtimechatfeature.utils.Constants.DOCUMENTS
 import com.jejecomms.realtimechatfeature.utils.Constants.DOCUMENT_EXTENSION
 import com.jejecomms.realtimechatfeature.utils.Constants.IMAGES
@@ -265,13 +266,13 @@ class ChatRoomRepository(
                     .collection(CHAT_ROOM_MEMBERS)
                     .document(member.id)
 
-                memberRef.set(member.copy(isGroupMember = true)).await()
+                memberRef.set(member.copy(role = CHAT_ROOM_ROLE_MEMBER)).await()
 
                 // If successful, update local database to reflect the success
-                messageDao.updateGroupMember(member.copy(isGroupMember = true))
+                messageDao.updateGroupMember(member.copy(role = CHAT_ROOM_ROLE_MEMBER))
             } catch (e: Exception) {
                 // If the network call fails, update the local database with the failed status
-                messageDao.updateGroupMember(member.copy(isGroupMember = false))
+                messageDao.updateGroupMember(member.copy(role = ""))
                 e.printStackTrace()
             }
         }
@@ -600,6 +601,6 @@ class ChatRoomRepository(
      */
     suspend fun getRecipientId(roomId: String, senderId: String): String? {
         val members = getGroupMembers(roomId).first()
-        return members.find { it.senderId != senderId }?.senderId
+        return members.find { it.userId != senderId }?.userId
     }
 }

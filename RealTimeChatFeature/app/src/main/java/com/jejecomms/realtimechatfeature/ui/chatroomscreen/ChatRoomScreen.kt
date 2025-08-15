@@ -12,6 +12,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -61,9 +62,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jejecomms.realtimechatfeature.R
-import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.data.model.MessageType
+import com.jejecomms.realtimechatfeature.ui.chatroomdetailscreen.ChatRoomDetailViewModel
 import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.AttachmentOptionsBottomSheet
 import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.DateSeparator
 import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.MessageBubble
@@ -87,6 +89,7 @@ fun ChatRoomScreen(
     currentSenderId: String,
     selectedChatRoom: ChatRoomEntity?,
     onBackClick: () -> Unit,
+    onNavigateToDetail: () -> Unit
 ) {
     /**
      * Get the room ID from the selected chat room.
@@ -305,7 +308,8 @@ fun ChatRoomScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text(selectedChatRoom?.groupName.toString()) },
+                title = { Text(selectedChatRoom?.title.toString(),
+                        fontSize = 18.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -352,6 +356,9 @@ fun ChatRoomScreen(
                             }
                         )
                     }
+                },
+                modifier = Modifier.clickable {
+                    onNavigateToDetail()
                 }
             )
         },

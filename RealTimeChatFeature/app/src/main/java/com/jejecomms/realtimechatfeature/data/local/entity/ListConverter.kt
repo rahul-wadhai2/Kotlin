@@ -1,4 +1,4 @@
-package com.jejecomms.realtimechatfeature.data.local
+package com.jejecomms.realtimechatfeature.data.local.entity
 
 import androidx.room.TypeConverter
 import com.google.gson.Gson

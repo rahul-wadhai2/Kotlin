@@ -47,9 +47,20 @@ object Constants {
      */
     const val KEY_SENDER_ID = "current_sender_id"
 
+    /**
+     * Chat room types.
+     */
+    const val CHAT_ROOM_TYPE_GROUP = "group"
+    const val CHAT_ROOM_TYPE_DM = "dm"
+
+    /**
+     * Chat room roles.
+     */
+    const val CHAT_ROOM_ROLE_ADMIN = "admin"
+    const val CHAT_ROOM_ROLE_MEMBER = "member"
+
     /*************************Table Name*********************************/
-    const val CHAT_ROOM = "chat_room"
-    const val CHAT_ROOM_MEMBERS = "chat_room_members"
+    const val CHAT_ROOM_MEMBERS = "members"
     const val MESSAGES = "messages"
     const val FAILED_READ_RECEIPTS = "failed_read_receipts"
 
@@ -57,6 +68,7 @@ object Constants {
     const val CHAT_ROOMS = "chatrooms"
     const val DOCUMENTS = "documents"
     const val IMAGES = "images"
+    const val USERS = "users"
     const val IMAGE_EXTENSION = ".jpg"
     const val DOCUMENT_EXTENSION = ".pdf"
     const val AUDIO_EXTENSION = ".mp4"

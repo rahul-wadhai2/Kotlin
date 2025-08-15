@@ -1,6 +1,6 @@
 package com.jejecomms.realtimechatfeature.ui.chatroomscreen
 
-import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatMessageEntity
 
 
 /**

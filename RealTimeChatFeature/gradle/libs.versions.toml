@@ -17,6 +17,7 @@ work-runtime-ktx = "2.9.0"
 coil-compose = "2.6.0"
 firebase-messaging-ktx = "23.4.1"
 gson = "2.10.1"
+toolbar-compose = "2.3.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -52,6 +53,10 @@ coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coi
 firebase-messaging-ktx = { group = "com.google.firebase", name = "firebase-messaging-ktx", version.ref = "firebase-messaging-ktx" }
 # Gson dependency for a library
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+# Firebase auth dependency for a library
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+# Toolbar dependency for a library
+toolbar-compose = { group = "me.onebone", name = "toolbar-compose", version.ref = "toolbar-compose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

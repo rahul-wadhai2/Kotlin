@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.jejecomms.realtimechatfeature.R
-import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatMessageEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.data.model.MessageType
 import com.jejecomms.realtimechatfeature.ui.theme.LightGreen
@@ -104,9 +104,11 @@ fun MessageBubble(
      */
     val messageBubblePadding = 8.dp
 
+    /**
+     * Local context.
+     */
     val context = LocalContext.current
 
-    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier

@@ -10,7 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
+import androidx.compose.ui.unit.sp
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatMessageEntity
 
 /**
  * A composable to display a system message, such as "User has joined the chat room".
@@ -28,7 +29,8 @@ fun SystemMessage(message: ChatMessageEntity) {
             text = message.text,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            fontSize = 14.sp
         )
     }
 }

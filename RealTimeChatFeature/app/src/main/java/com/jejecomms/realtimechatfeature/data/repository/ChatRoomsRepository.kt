@@ -5,18 +5,21 @@ import androidx.work.Constraints
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QuerySnapshot
-import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
-import com.jejecomms.realtimechatfeature.data.local.ChatRoomMemberEntity
-import com.jejecomms.realtimechatfeature.data.local.MessageDao
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomEntity
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomMemberEntity
+import com.jejecomms.realtimechatfeature.data.local.dao.MessageDao
+import com.jejecomms.realtimechatfeature.data.local.entity.UsersEntity
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOMS
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
+import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_ROLE_ADMIN
+import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_ROLE_MEMBER
+import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_TYPE_GROUP
 import com.jejecomms.realtimechatfeature.utils.Constants.MESSAGES
-import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME_PREF
-import com.jejecomms.realtimechatfeature.utils.DateUtils
-import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtils
+import com.jejecomms.realtimechatfeature.utils.DateUtils.getTimestamp
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 import com.jejecomms.realtimechatfeature.workers.DeletionSyncWorker
 import kotlinx.coroutines.Dispatchers
@@ -31,29 +34,52 @@ import kotlinx.coroutines.withContext
  * Repository class responsible for handling data operations related to chat rooms.
  */
 class ChatRoomsRepository(
+    private val context: Context,
     private val firebasFireStore: FirebaseFirestore,
     private val messageDao: MessageDao,
-    private val context: Context,
+    private val loginRepository: LoginRepository
 ) {
     /**
      * A function to start listening to real-time updates from Firestore for chat rooms
      * and emitting them as a Flow of lists of ChatRoomEntity objects.
      */
-    fun startFirestoreChatRoomsListener(): Flow<List<ChatRoomEntity>> = callbackFlow {
+    fun startFirestoreChatRoomsListener(currentUserId: String):
+            Flow<List<ChatRoomEntity>> = callbackFlow {
         val chatRoomsCollection = firebasFireStore.collection(CHAT_ROOMS)
-            .orderBy("lastTimestamp", Query.Direction.DESCENDING)
 
-        val listenerRegistration = chatRoomsCollection.addSnapshotListener { snapshot, error ->
+        // Get a reference to all chat room member documents for the current user.
+        // This query is on a collection group of all 'CHAT_ROOM_MEMBERS' subcollections.
+        val memberQuery = firebasFireStore.collectionGroup(CHAT_ROOM_MEMBERS)
+            .whereEqualTo("userId", currentUserId)
+
+        val listenerRegistration = memberQuery.addSnapshotListener { snapshot, error ->
             if (error != null) {
                 close(error)
                 return@addSnapshotListener
             }
 
             if (snapshot != null) {
-                val remoteChatRooms = snapshot.documents.mapNotNull {
-                    it.toObject(ChatRoomEntity::class.java)
+                //Extract the roomId from each member document to get a list of room IDs.
+                val roomIds = snapshot.documents.mapNotNull { it.getString("roomId") }
+
+                if (roomIds.isNotEmpty()) {
+                    // Use the list of room IDs to fetch the corresponding chat room documents.
+                    val chatRoomsQuery = chatRoomsCollection
+                        .whereIn(FieldPath.documentId(), roomIds)
+                        .orderBy("lastTimestamp", Query.Direction.DESCENDING)
+
+                    chatRoomsQuery.get().addOnSuccessListener { chatRoomsSnapshot ->
+                        val remoteChatRooms = chatRoomsSnapshot.documents.mapNotNull {
+                            it.toObject(ChatRoomEntity::class.java)
+                        }
+                        trySend(remoteChatRooms)
+                    }.addOnFailureListener {
+                        close(it)
+                    }
+                } else {
+                    // If the user is not a member of any room, emit an empty list.
+                    trySend(emptyList())
                 }
-                trySend(remoteChatRooms)
             }
         }
         awaitClose { listenerRegistration.remove() }
@@ -119,76 +145,80 @@ class ChatRoomsRepository(
      * It first checks if a group with the same name already exists.
      *
      * @param groupName The name of the new chat room.
-     * @param userName The name of the user creating the room.
+     * @param selectedUsers The list of users to add to the chat room.
      * @param currentUserId The ID of the user creating the room.
      * @return `true` if the chat room was created successfully, `false` otherwise.
      */
     suspend fun createChatRoom(
         groupName: String,
-        userName: String,
+        selectedUsers: List<UsersEntity>,
         currentUserId: String,
     ): Boolean {
-        // First, check if a group with this name already exists.
-        // This prevents duplicate group names.
         if (checkIfGroupNameExists(groupName)) {
             return false
         }
 
-        SharedPreferencesUtils.putString(SENDER_NAME_PREF, userName)
-
         val chatRoomId = UuidGenerator.generateUniqueId()
-        val memberId = UuidGenerator.generateUniqueId()
 
         val newChatRoom = ChatRoomEntity(
             roomId = chatRoomId,
-            lastMessage = "",
-            lastTimestamp = DateUtils.getTimestamp(),
-            unreadCount = 0,
-            isMuted = false,
-            isArchived = false,
-            groupName = groupName,
-            userName = userName,
-            lastReadTimestamp = 0
+            lastTimestamp = getTimestamp(),
+            createdBy = currentUserId,
+            createdAt = getTimestamp(),
+            title = groupName,
+            type = CHAT_ROOM_TYPE_GROUP
         )
 
-        // Create the member for the new room
-        val joinData = ChatRoomMemberEntity(
-            id = memberId,
-            senderId = currentUserId,
-            senderName = userName,
-            timestamp = DateUtils.getTimestamp(),
-            isGroupMember = true,
-            roomId = chatRoomId
-        )
-
-        // Use a flag to track if the chat room was created successfully.
-        // This is crucial for the rollback logic.
         var isChatRoomCreatedInFirestore = false
 
         return try {
-            // Add the chat room to Firestore
+            //Create the new chat room document in Firestore
             firebasFireStore.collection(CHAT_ROOMS)
-                .document(chatRoomId) // Use the unique ID as the document ID
+                .document(chatRoomId)
                 .set(newChatRoom)
                 .await()
 
-            // If the above line succeeds without throwing an exception,
-            // we can safely set our flag to true.
             isChatRoomCreatedInFirestore = true
+            val userName = loginRepository.getUserName(currentUserId)
 
-            // Add the creating user as a member to the chat room in Firestore
-            firebasFireStore.collection(CHAT_ROOMS)
-                .document(chatRoomId)
-                .collection(CHAT_ROOM_MEMBERS)
-                .document(joinData.id)
-                .set(joinData.copy(isGroupMember = true))
-                .await()
+            // Combine the selected users and the current user (creator) into one list of members
+            val allMembers = userName?.let {
+                selectedUsers.map { user ->
+                    ChatRoomMemberEntity(
+                        userId = user.uid,
+                        userName = user.username,
+                        roomId = chatRoomId,
+                        role = CHAT_ROOM_ROLE_MEMBER,
+                        joinedAt = getTimestamp()
+                    )
+                } + listOf(
+                    ChatRoomMemberEntity(
+                        userId = currentUserId,
+                        userName = it.username,
+                        roomId = chatRoomId,
+                        role = CHAT_ROOM_ROLE_ADMIN,
+                        joinedAt = getTimestamp()
+                    )
+                )
+            }
 
-            // If Firestore operations are successful, add to the local database
-            messageDao.insertChatRoom(newChatRoom)
-            messageDao.insertGroupMember(joinData)
+            val batch = firebasFireStore.batch()
+            allMembers?.forEach { member ->
+                val docRef = firebasFireStore.collection(CHAT_ROOMS)
+                    .document(chatRoomId)
+                    .collection(CHAT_ROOM_MEMBERS)
+                    .document(member.userId)
+                batch.set(docRef, member)
+            }
+            batch.commit().await()
+
+            withContext(Dispatchers.IO) {
+                messageDao.insertChatRoom(newChatRoom)
+                allMembers?.let { messageDao.insertGroupMembers(it) }
+            }
             true
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            e.printStackTrace()
             if (isChatRoomCreatedInFirestore) {
                 try {
                     deleteRoomFromFirestore(chatRoomId)
@@ -265,7 +295,7 @@ class ChatRoomsRepository(
 
             // Get all documents from the 'chat_room_members' subcollection
             val membersSnapshot: QuerySnapshot = chatRoomRef.collection(CHAT_ROOM_MEMBERS)
-                .whereEqualTo("senderId", senderId)
+                .whereEqualTo("userId", senderId)
                 .get()
                 .await()
 

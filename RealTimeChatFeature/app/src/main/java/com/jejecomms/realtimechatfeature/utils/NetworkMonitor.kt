@@ -8,21 +8,28 @@ import android.net.NetworkRequest
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Utility object to monitor network connectivity using a Flow.
+ * A singleton object to monitor network connectivity status.
+ *
+ * It uses the modern NetworkCallback API and provides the status via a Flow.
  */
 object NetworkMonitor {
 
     private lateinit var applicationContext: Context
+    private val isInitialized = AtomicBoolean(false)
 
     /**
      * Initializes the NetworkMonitor with the application context.
+     * Must be called before any other methods are used.
      *
      * @param context The application context.
      */
     fun init(context: Context) {
-        applicationContext = context.applicationContext
+        if (isInitialized.compareAndSet(false, true)) {
+            applicationContext = context.applicationContext
+        }
     }
 
     /**
@@ -32,9 +39,15 @@ object NetworkMonitor {
      * @return A Flow<Boolean> where true means online and false means offline.
      */
     fun isOnline(): Flow<Boolean> = callbackFlow {
+        if (!isInitialized.get()) {
+            throw IllegalStateException("NetworkMonitor must be " +
+                    "initialized via init(context) before use.")
+        }
+
         val connectivityManager = applicationContext
             .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
+        // The callback logic for modern Android versions
         val callback = object : ConnectivityManager.NetworkCallback() {
             private val networks = mutableSetOf<Network>()
 
@@ -51,15 +64,36 @@ object NetworkMonitor {
                 networks.remove(network)
                 updateNetworkStatus()
             }
+
+            override fun onCapabilitiesChanged(network: Network
+                                               ,networkCapabilities: NetworkCapabilities) {
+                if (networkCapabilities
+                    .hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    && networkCapabilities
+                        .hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                ) {
+                    networks.add(network)
+                } else {
+                    networks.remove(network)
+                }
+                updateNetworkStatus()
+            }
         }
 
         val request = NetworkRequest.Builder()
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .build()
-
         connectivityManager.registerNetworkCallback(request, callback)
 
-        // Ensure the Flow is closed and the callback is unregistered when the consumer is gone.
+        // **Crucial for fixing the issue**: Emit initial network status
+        val initialStatus = connectivityManager.activeNetwork?.let {
+            connectivityManager
+                .getNetworkCapabilities(it)
+                ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        } ?: false
+        trySend(initialStatus)
+
+        // Ensure the Flow is closed and the callback is unregistered.
         awaitClose {
             connectivityManager.unregisterNetworkCallback(callback)
         }

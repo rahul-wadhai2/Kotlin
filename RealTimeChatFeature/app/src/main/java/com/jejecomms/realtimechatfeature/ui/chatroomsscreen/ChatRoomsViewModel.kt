@@ -4,8 +4,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.jejecomms.realtimechatfeature.ChatApplication
 import com.jejecomms.realtimechatfeature.R
-import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomEntity
+import com.jejecomms.realtimechatfeature.data.local.entity.UsersEntity
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomsRepository
+import com.jejecomms.realtimechatfeature.data.repository.LoginRepository
 import com.jejecomms.realtimechatfeature.utils.Constants.KEY_SENDER_ID
 import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtils
 import kotlinx.coroutines.Job
@@ -20,9 +22,13 @@ import kotlinx.coroutines.launch
  */
 class ChatRoomsViewModel(
     private val chatRoomsRepository: ChatRoomsRepository,
+    private val loginRepository: LoginRepository,
     private val application: ChatApplication,
 ) : AndroidViewModel(application) {
 
+    /**
+     * State flow for all Chat Rooms.
+     */
     private val _chatRooms = MutableStateFlow<List<ChatRoomEntity>>(emptyList())
 
     /**
@@ -59,9 +65,36 @@ class ChatRoomsViewModel(
     private val _deepLinkChatRoom = MutableStateFlow<ChatRoomEntity?>(null)
     val deepLinkChatRoom: StateFlow<ChatRoomEntity?> = _deepLinkChatRoom
 
+    /**
+     * State flow for all users.
+     */
+    private val _allUsers = MutableStateFlow<List<UsersEntity>>(emptyList())
+
+    /**
+     * Exposes the list of users as a StateFlow.
+     */
+    val allUsers: StateFlow<List<UsersEntity>> = _allUsers.asStateFlow()
+
     init {
-        // Start the Firestore listener and collect the unread count flow
         startRoomDataSync()
+    }
+
+    /**
+     * Fetch all users from Firebase and save them to the local database on app start.
+     */
+    fun startUsersDataSync() {
+        viewModelScope.launch {
+            try {
+                val users = loginRepository.fetchAllUsersFromFirestore()
+                loginRepository.saveAllUsersLocally(users)
+                val senderId = SharedPreferencesUtils.getString(KEY_SENDER_ID)
+                senderId?.let {
+                    if (it.isNotEmpty()) {
+                        _allUsers.value = loginRepository.getAllUsers(senderId).first()
+                    }
+                }
+            } catch (_: Exception) {}
+        }
     }
 
     /**
@@ -75,7 +108,9 @@ class ChatRoomsViewModel(
         // Launch a coroutine to listen to Firestore changes and update the local DB.
         firestoreRoomsListenerJob = viewModelScope.launch {
             try {
-                chatRoomsRepository.startFirestoreChatRoomsListener().collect { remoteRooms ->
+                val senderId = SharedPreferencesUtils.getString(KEY_SENDER_ID)
+                chatRoomsRepository.startFirestoreChatRoomsListener(senderId.toString())
+                    .collect { remoteRooms ->
                     chatRoomsRepository.insertRooms(remoteRooms)
                 }
             } catch (_: Exception) {
@@ -111,10 +146,12 @@ class ChatRoomsViewModel(
      * Creates a new chat room and adds the creating user as a member.
      * Updates the UI state with an error message if the creation fails.
      */
-    fun createChatRoom(groupName: String, userName: String, currentUserId: String) {
+     fun createChatRoom(groupName: String, selectedUsers: List<UsersEntity>
+                        ,currentUserId: String) {
         viewModelScope.launch {
             try {
-                val isSuccess = chatRoomsRepository.createChatRoom(groupName, userName, currentUserId)
+                val isSuccess = chatRoomsRepository.createChatRoom(groupName, selectedUsers
+                    ,currentUserId)
                 if (isSuccess) {
                     _groupCreationSuccessful.value = true
                     _createGroupError.value = null

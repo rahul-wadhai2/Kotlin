@@ -44,7 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jejecomms.realtimechatfeature.R
-import com.jejecomms.realtimechatfeature.data.local.ChatRoomEntity
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.ui.theme.White
 import com.jejecomms.realtimechatfeature.utils.DateUtils.formatTime
 
@@ -147,7 +147,7 @@ fun ChatRoomsItem(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = chatRoom.groupName.toString(),
+                        text = chatRoom.title.toString(),
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1,
                         style = MaterialTheme.typography.titleMedium,

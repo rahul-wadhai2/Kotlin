@@ -8,11 +8,13 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.jejecomms.realtimechatfeature.data.local.ChatDatabase
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomRepository
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomsRepository
+import com.jejecomms.realtimechatfeature.data.repository.LoginRepository
 import com.jejecomms.realtimechatfeature.utils.NetworkMonitor
 import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtils
 import com.jejecomms.realtimechatfeature.workers.MessageRetryWorker
@@ -41,6 +43,16 @@ class ChatApplication : Application() {
     val messageDao by lazy { chatDatabase.messageDao() }
 
     /**
+     * Lazy initialization of the UserDao instance.
+     */
+    val userDao by lazy { chatDatabase.userDao() }
+
+    /**
+     * Lazy initialization of the ChatRoomDetailDao instance.
+     */
+    val chatRoomDetailDao by lazy { chatDatabase.chatRoomDetailDao() }
+
+    /**
      * Lazily create the Firestore instance.
      */
     private val firebasFireStore by lazy { FirebaseFirestore.getInstance() }
@@ -51,10 +63,22 @@ class ChatApplication : Application() {
     private val firebaseStorage by lazy { FirebaseStorage.getInstance() }
 
     /**
+     * Lazily create the Firesbase Auth instance.
+     */
+    private val firebaseAuth by lazy { FirebaseAuth.getInstance() }
+
+    /**
+     * Expose the LoginRepository instance.
+     */
+    val loginRepository by lazy {
+        LoginRepository(firebaseAuth, firebasFireStore, userDao)
+    }
+
+    /**
      * Expose the ChatRoomsRepository instance.
      */
     val chatRoomsRepository by lazy {
-        ChatRoomsRepository(firebasFireStore, messageDao, this)
+        ChatRoomsRepository(this, firebasFireStore, messageDao, loginRepository)
     }
 
     /**
@@ -69,9 +93,9 @@ class ChatApplication : Application() {
         // Initialize Firebase.
         FirebaseApp.initializeApp(this)
         // Initialize SharedPreferencesUtil
-        SharedPreferencesUtils.init(applicationContext)
+        SharedPreferencesUtils.init(this)
         // Initialize NetworkMonitor
-        NetworkMonitor.init(applicationContext)
+        NetworkMonitor.init(this)
 
         // Enqueue the worker to initialize timestamps on app launch
         val workRequest = OneTimeWorkRequest.Builder(TimestampInitializationWorker::class.java)

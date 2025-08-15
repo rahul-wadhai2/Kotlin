@@ -28,11 +28,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import com.jejecomms.realtimechatfeature.data.local.ChatMessageEntity
+import com.jejecomms.realtimechatfeature.R
+import com.jejecomms.realtimechatfeature.data.local.entity.ChatMessageEntity
 import com.jejecomms.realtimechatfeature.utils.DateUtils.formatTime
 import java.io.File
 
@@ -41,7 +43,14 @@ import java.io.File
  */
 @Composable
 fun AudioBubbleContent(message: ChatMessageEntity, textColor: Color, isCurrentUser: Boolean) {
+    /**
+     * Context for the MediaPlayer.
+     */
     val context = LocalContext.current
+
+    /**
+     * State variables for the MediaPlayer.
+     */
     var isPlaying by remember { mutableStateOf(false) }
     var currentPosition by remember { mutableStateOf(0) }
     var totalDuration by remember { mutableStateOf(0) }
@@ -107,7 +116,7 @@ fun AudioBubbleContent(message: ChatMessageEntity, textColor: Color, isCurrentUs
             }) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = "Play/Pause Audio",
+                    contentDescription = stringResource(R.string.des_play_pause_audio),
                     tint = textColor,
                     modifier = Modifier.size(24.dp)
                 )
