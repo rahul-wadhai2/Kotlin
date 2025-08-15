@@ -455,3 +455,15 @@ The `MessageDao` provides the core database operations for read tracking:
 -   **Image Upload:** Image upload is showing failed because Firebase storage is a paid service, so it cannot be tested, but the code is implemented.
 
 -   **Stretch Features:** Presence tracking and typing indicators are planned for future releases.
+
+---
+
+# What was done
+
+ 1. Resend Failed Messages & Delivery Receipts
+
+ 2. Offline Support & Local Cache
+
+ 3. Message Attachments (PDF/Image/Audio)
+
+ 4. Chat Export & Deletion (Personal Data Control)
