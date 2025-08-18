@@ -44,7 +44,7 @@ object ToastUtils {
         context: Context,
         message: String,
         duration: Int = Toast.LENGTH_SHORT,
-        gravity: Int = 0,
+        gravity: Int = Gravity.CENTER,
         xOffset: Int = 0,
         yOffset: Int = 0,
     ) {

@@ -11,7 +11,6 @@ import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomMemberEntity
 import com.jejecomms.realtimechatfeature.data.local.entity.ReadReceiptEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
-import com.jejecomms.realtimechatfeature.utils.Constants
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOMS
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
 import com.jejecomms.realtimechatfeature.utils.Constants.FAILED_READ_RECEIPTS
@@ -94,13 +93,13 @@ interface MessageDao {
     /**
      * Query to perform a soft delete on a chat room.
      */
-    @Query("UPDATE ${Constants.CHAT_ROOMS} SET isDeletedLocally = 1 WHERE roomId = :roomId")
+    @Query("UPDATE ${CHAT_ROOMS} SET isDeletedLocally = 1 WHERE roomId = :roomId")
     suspend fun markChatRoomAsLocallyDeleted(roomId: String)
 
     /**
      * Query to find rooms that are locally deleted but not yet synced with Firestore.
      */
-    @Query("SELECT * FROM ${Constants.CHAT_ROOMS} WHERE isDeletedLocally = 1")
+    @Query("SELECT * FROM ${CHAT_ROOMS} WHERE isDeletedLocally = 1")
     fun getLocallyDeletedChatRooms(): Flow<List<ChatRoomEntity>>
 
     /**

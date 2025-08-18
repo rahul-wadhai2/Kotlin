@@ -11,7 +11,6 @@ import androidx.lifecycle.viewModelScope
 import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.entity.ChatMessageEntity
 import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomMemberEntity
-import com.jejecomms.realtimechatfeature.data.local.entity.UsersEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.data.model.MessageType
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomRepository
@@ -23,7 +22,6 @@ import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME
 import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME_PREF
 import com.jejecomms.realtimechatfeature.utils.Constants.USER_JOINED_THE_CHAT_ROOM
 import com.jejecomms.realtimechatfeature.utils.Constants.YOU_HAVE_JOINED_THE_CHAT_ROOM
-import com.jejecomms.realtimechatfeature.utils.DateUtils
 import com.jejecomms.realtimechatfeature.utils.DateUtils.getTimestamp
 import com.jejecomms.realtimechatfeature.utils.SharedPreferencesUtils
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
@@ -98,9 +96,15 @@ class ChatRoomViewModel(
      */
     val imageUploadProgress: StateFlow<Int> = _imageUploadProgress.asStateFlow()
 
-    private val _members = MutableStateFlow<List<UsersEntity>>(emptyList())
+    /**
+     * MutableStateFlow to hold the list of members.
+     */
+    private val _members = MutableStateFlow<List<ChatRoomMemberEntity>>(emptyList())
 
-    val members: StateFlow<List<UsersEntity>> = _members.asStateFlow()
+    /**
+     * Exposes the list of members as a StateFlow.
+     */
+    val members: StateFlow<List<ChatRoomMemberEntity>> = _members.asStateFlow()
 
     init {
         //checkIfUserHasJoined()
@@ -169,6 +173,8 @@ class ChatRoomViewModel(
                     chatRoomRepository.getLocalMessages(roomId),
                     chatRoomRepository.getGroupMembers(roomId)
                 ) { chatMessages, groupMembers ->
+                    // Update the members StateFlow
+                    _members.value = groupMembers
                     val joinMessages = groupMembers.map { member ->
                         val joinMessageText = if (member.userId == currentSenderId) {
                             YOU_HAVE_JOINED_THE_CHAT_ROOM

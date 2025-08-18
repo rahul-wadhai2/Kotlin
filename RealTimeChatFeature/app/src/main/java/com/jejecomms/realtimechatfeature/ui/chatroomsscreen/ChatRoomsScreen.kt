@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -47,6 +48,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -80,21 +82,61 @@ fun ChatRoomsScreen(
     chatRoomsViewModel: ChatRoomsViewModel = viewModel(),
     currentUserId: String
 ) {
+    /**
+     * State for the bottom sheet.
+     */
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    /**
+     * Scope for coroutines.
+     */
     val scope = rememberCoroutineScope()
 
+    /**
+     * State variable for group name.
+     */
     var groupName by remember { mutableStateOf("") }
+
+    /**
+     * State variable for group name error.
+     */
     var groupNameError by remember { mutableStateOf(false) }
 
+    /**
+     * State variable for group creation success.
+     */
     val groupCreationSuccessful by chatRoomsViewModel.groupCreationSuccessful
         .collectAsStateWithLifecycle()
+
+    /**
+     * State variable for group creation error.
+     */
     val createGroupError by chatRoomsViewModel.createGroupError.collectAsStateWithLifecycle()
 
+    /**
+     * State variable for all users.
+     */
     val allUsers by chatRoomsViewModel.allUsers.collectAsStateWithLifecycle()
+
+    /**
+     * State variable for selected users.
+     */
     var selectedUsers by remember { mutableStateOf(listOf<UsersEntity>()) }
 
+    /**
+     * Context for the composable.
+     */
     val context = LocalContext.current
+
+    /**
+     * State variable for showing the bottom sheet.
+     */
     var showBottomSheet by remember { mutableStateOf(false) }
+
+    /**
+     * State variable for loading.
+     */
+    val isLoading by chatRoomsViewModel.isLoading.collectAsStateWithLifecycle()
 
     LaunchedEffect(groupCreationSuccessful) {
         if (groupCreationSuccessful) {
@@ -114,6 +156,8 @@ fun ChatRoomsScreen(
 
     LaunchedEffect(Unit) {
         chatRoomsViewModel.startUsersDataSync()
+        chatRoomsViewModel.startRoomDataSync()
+
     }
 
     Scaffold(
@@ -177,16 +221,17 @@ fun ChatRoomsScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(16.dp),
+        contentAlignment = Alignment.Center
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().alpha(if (isLoading) 0.5f else 1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = stringResource(R.string.new_group),
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                        fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -203,10 +248,12 @@ fun ChatRoomsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         isError = groupNameError || createGroupError != null,
                         shape = RoundedCornerShape(12.dp),
+                        enabled = !isLoading,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = LightGreen,
                             unfocusedBorderColor = Color.LightGray,
-                            errorBorderColor = Color.Red
+                            errorBorderColor = Color.Red,
+                            disabledBorderColor = Color.LightGray
                         )
                     )
                     if (groupNameError) {
@@ -276,9 +323,7 @@ fun ChatRoomsScreen(
                                             modifier = Modifier
                                                 .size(16.dp)
                                                 .clip(CircleShape)
-                                                .clickable {
-                                                    selectedUsers = selectedUsers - user
-                                                }
+                                                .clickable(enabled = !isLoading) { selectedUsers = selectedUsers - user }
                                         )
                                     }
                                 }
@@ -293,7 +338,7 @@ fun ChatRoomsScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
+                                    .clickable(enabled = !isLoading) {
                                         selectedUsers = if (isSelected) {
                                             selectedUsers - user
                                         } else {
@@ -318,32 +363,44 @@ fun ChatRoomsScreen(
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(16.dp))
-                                Text(text = user.username, color = if (isSelected) LightGreen else Color.Black)
+                                Text(
+                                    text = user.username,
+                                    color = if (isSelected) LightGreen else Color.Black
+                                )
                             }
                         }
                     }
                 }
                 FloatingActionButton(
                     onClick = {
-                        if (groupName.isNotEmpty() && selectedUsers.isNotEmpty()) {
-                            chatRoomsViewModel.createChatRoom(
-                                groupName = groupName,
-                                selectedUsers = selectedUsers,
-                                currentUserId = currentUserId
-                            )
-                        } else {
-                            if (groupName.isEmpty()) groupNameError = true
+                        if (!isLoading) {
+                            if (groupName.isNotEmpty() && selectedUsers.isNotEmpty()) {
+                                chatRoomsViewModel.createChatRoom(
+                                    groupName = groupName,
+                                    selectedUsers = selectedUsers,
+                                    currentUserId = currentUserId
+                                )
+                            } else {
+                                if (groupName.isEmpty()) groupNameError = true
+                            }
                         }
                     },
                     modifier = Modifier.align(Alignment.BottomEnd),
                     containerColor = if (groupName.isNotEmpty()
                         && selectedUsers.isNotEmpty()) LightGreen else Color.LightGray,
-                    contentColor = White,
+                    contentColor = White
                 ) {
                     Icon(
                         Icons.Filled.Check,
                         contentDescription = stringResource(R.string.des_create_group),
                         tint = White
+                    )
+                }
+                // Show the progress bar centered over the content
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = LightGreen
                     )
                 }
             }

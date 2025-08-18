@@ -120,7 +120,7 @@ class ChatActivity : ComponentActivity() {
     private val chatRoomDetailRepository by lazy {
         val application = application as ChatApplication
         val chatRoomDetailDao = application.chatRoomDetailDao
-        ChatRoomDetailRepository(firestoreDb, chatRoomDetailDao)
+        ChatRoomDetailRepository(firestoreDb, chatRoomDetailDao, application.applicationScope)
     }
 
     /**
@@ -382,31 +382,46 @@ class ChatActivity : ComponentActivity() {
                                             }
                                         }
                                     }
-                                } showRoomDetailsForSelectedChatRoom -> {
+                                }
+
+                                showRoomDetailsForSelectedChatRoom -> {
                                     val roomId = selectedChatRoom!!.roomId
                                     val chatRoomDetailViewModel: ChatRoomDetailViewModel =
-                                        viewModel( factory = ChatRoomDetailViewModelFactory(
-                                                chatRoomDetailRepository, roomId))
-                                // Retrieve the members from the ViewModel.
-                                val members by chatRoomDetailViewModel.members.collectAsState()
+                                        viewModel(
+                                            factory = ChatRoomDetailViewModelFactory(
+                                                chatRoomsRepository, chatRoomDetailRepository,
+                                                roomId, application as ChatApplication))
+                                    // Retrieve the members from the ViewModel.
+                                    val members by chatRoomDetailViewModel.members.collectAsState()
 
-                                  if (members.isEmpty()) {
-                                    // Show a loading indicator while members are being fetched
-                                      Box(modifier = Modifier.fillMaxSize()
-                                          ,contentAlignment = Alignment.Center) {
-                                          CircularProgressIndicator()
-                                      }
-                                  } else {
-                                    ChatRoomDetailScreen(
-                                        roomName = selectedChatRoom!!.title.toString(),
-                                        members = members,
-                                        onLeaveRoom = { /* TODO: Implement leave room logic here or in ViewModel */ },
-                                        onBack = {
-                                            showRoomDetailsForSelectedChatRoom = false
+                                    if (members.isEmpty()) {
+                                        // Show a loading indicator while members are being fetched
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator()
                                         }
-                                    )
-                                  }
-                                } else -> {
+                                    } else {
+                                        ChatRoomDetailScreen(
+                                            currentSenderId = currentSenderId,
+                                            roomName = selectedChatRoom!!.title.toString(),
+                                            members = members,
+                                            onLeaveRoom = {
+                                                chatRoomDetailViewModel
+                                                    .onConfirmLeave(currentSenderId)
+                                            },
+                                            onBack = {
+                                                showRoomDetailsForSelectedChatRoom = false
+                                            },
+                                            onRemoveMember = { member ->
+                                                chatRoomDetailViewModel.removeMember(member)
+                                            }
+                                        )
+                                    }
+                                }
+
+                                else -> {
                                     val chatRoomViewModel: ChatRoomViewModel = viewModel(
                                         factory = ChatRoomViewModelFactory(
                                             chatRoomRepository,

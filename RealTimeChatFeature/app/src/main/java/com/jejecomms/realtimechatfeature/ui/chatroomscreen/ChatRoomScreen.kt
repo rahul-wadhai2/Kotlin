@@ -65,7 +65,6 @@ import com.jejecomms.realtimechatfeature.R
 import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.data.model.MessageType
-import com.jejecomms.realtimechatfeature.ui.chatroomdetailscreen.ChatRoomDetailViewModel
 import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.AttachmentOptionsBottomSheet
 import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.DateSeparator
 import com.jejecomms.realtimechatfeature.ui.chatroomscreen.components.MessageBubble
@@ -224,6 +223,16 @@ fun ChatRoomScreen(
             )
         }
     }
+
+    /**
+     * Collect the members from the ViewModel.
+     */
+    val members by chatRoomViewModel.members.collectAsState()
+
+    /**
+     * Check if the current user is a member of the room.
+     */
+    val isMember = members.any { it.userId == currentSenderId }
 
     /**
      * This LaunchedEffect will check the state of the list before trying to scroll.
@@ -394,6 +403,25 @@ fun ChatRoomScreen(
                             textAlign = TextAlign.Center
                         )
                     }
+                }
+            } else if (!isMember) {
+                // Show the message indicating the user is no longer a member
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .imePadding()
+                        .background(Color.White)
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        fontSize = 14.sp,
+                        text = stringResource(R.string.remove_member_can_not_send_message),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.DarkGray,
+                        textAlign = TextAlign.Center
+                    )
                 }
             } else {
                 // Show the message input field

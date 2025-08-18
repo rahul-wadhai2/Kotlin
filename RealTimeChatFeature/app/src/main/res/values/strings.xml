@@ -49,4 +49,14 @@
     <string name="des_play_pause_audio">Play Pause Audio</string>
     <string name="des_read">Read</string>
     <string name="des_delivered">Delivered</string>
+    <string name="add_members">Add members</string>
+    <string name="des_add_members">Add members</string>
+    <string name="admin">Admin</string>
+    <string name="remove_member_can_not_send_message">You\'ve been removed from this group, so you can no longer participate in this conversation</string>
+    <string name="transfer_ownership">Transfer ownership</string>
+    <string name="remove_member">"Remove "</string>
+    <string name="remove_message">"Are you sure you want to remove "</string>
+    <string name="error_transferring_ownership">Error: Room ID not available for ownership transfer.</string>
+    <string name="ownership_transfer_message">Ownership transfer initiated. %1$s is now admin.</string>
+    <string name="confirm_leave_room_message">Are you sure you want to leave this room?</string>
 </resources>

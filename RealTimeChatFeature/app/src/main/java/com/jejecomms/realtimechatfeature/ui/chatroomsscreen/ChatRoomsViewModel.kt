@@ -61,7 +61,7 @@ class ChatRoomsViewModel(
      */
     private var firestoreRoomsListenerJob: Job? = null
 
-    // StateFlow to hold the ChatRoomEntity from a deep link
+    // StateFlow to hold the ChatRoomEntity from a deep link.(Not completed)
     private val _deepLinkChatRoom = MutableStateFlow<ChatRoomEntity?>(null)
     val deepLinkChatRoom: StateFlow<ChatRoomEntity?> = _deepLinkChatRoom
 
@@ -75,9 +75,15 @@ class ChatRoomsViewModel(
      */
     val allUsers: StateFlow<List<UsersEntity>> = _allUsers.asStateFlow()
 
-    init {
-        startRoomDataSync()
-    }
+    /**
+     * State flow to track the loading state for group creation.
+     */
+    private val _isLoading = MutableStateFlow(false)
+
+    /**
+     * Exposes the loading state as a public StateFlow.
+     */
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     /**
      * Fetch all users from Firebase and save them to the local database on app start.
@@ -101,7 +107,7 @@ class ChatRoomsViewModel(
      * Initializes the chat rooms and starts the data collection
      * from Firestore and the local database.
      */
-    private fun startRoomDataSync() {
+    fun startRoomDataSync() {
         // Cancel any previous jobs
         firestoreRoomsListenerJob?.cancel()
 
@@ -149,6 +155,8 @@ class ChatRoomsViewModel(
      fun createChatRoom(groupName: String, selectedUsers: List<UsersEntity>
                         ,currentUserId: String) {
         viewModelScope.launch {
+            // Set loading state to true
+            _isLoading.value = true
             try {
                 val isSuccess = chatRoomsRepository.createChatRoom(groupName, selectedUsers
                     ,currentUserId)
@@ -163,6 +171,9 @@ class ChatRoomsViewModel(
             } catch (e: Exception) {
                 _createGroupError.value = e.message ?: application.getString(R.string.unknown_error)
                 _groupCreationSuccessful.value = false
+            } finally {
+                // Set loading state back to false regardless of success or failure
+                _isLoading.value = false
             }
         }
     }
@@ -175,7 +186,9 @@ class ChatRoomsViewModel(
         _createGroupError.value = null
     }
 
-    // Function to handle the initial deep link
+    /**
+     * Function to handle the initial deep link
+     */
     fun handleInitialDeepLink(roomId: String?) {
         if (roomId != null) {
             viewModelScope.launch {
@@ -191,7 +204,9 @@ class ChatRoomsViewModel(
         }
     }
 
-    // Function to clear the deep link state after navigation
+    /**
+     * Function to clear the deep link state after navigation
+     */
     fun clearDeepLinkChatRoom() {
         _deepLinkChatRoom.value = null
     }

@@ -13,8 +13,10 @@ import com.jejecomms.realtimechatfeature.utils.UuidGenerator
  *  @param userName Display name of the sender.
  *  @param roomId ID of the chat room the message belongs to.
  *  @param role Role of the sender in the chat room.
+ *  @param transferRole Role of the sender in the chat room.
  *  @param isMuted Flag indicating if the message is muted.
  *  @param joinedAt Timestamp when the sender joined the chat room.
+ *  @param isPendingRemoval Flag indicating if the sender is pending removal.
  */
 @Entity(tableName = Constants.CHAT_ROOM_MEMBERS)
 data class ChatRoomMemberEntity(
@@ -24,6 +26,8 @@ data class ChatRoomMemberEntity(
     val userName: String = "",
     val roomId: String = "",
     val role: String = "",
+    val transferRole: String = "",
     val isMuted: Boolean = false,
     val joinedAt: Long = 0L,
+    val isPendingRemoval: Boolean = false
 )
