@@ -59,4 +59,8 @@
     <string name="error_transferring_ownership">Error: Room ID not available for ownership transfer.</string>
     <string name="ownership_transfer_message">Ownership transfer initiated. %1$s is now admin.</string>
     <string name="confirm_leave_room_message">Are you sure you want to leave this room?</string>
+    <string name="no_members_to_add">No new members to add.</string>
+    <string name="members_added_successfully">Members added successfully!</string>
+    <string name="members">"Members "</string>
+    <string name="error_adding_members">There was an issue adding members to the chat.</string>
 </resources>

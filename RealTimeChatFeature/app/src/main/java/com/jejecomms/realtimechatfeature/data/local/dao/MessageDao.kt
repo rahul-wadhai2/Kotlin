@@ -103,12 +103,6 @@ interface MessageDao {
     fun getLocallyDeletedChatRooms(): Flow<List<ChatRoomEntity>>
 
     /**
-     * Method to permanently delete a room from the local database.
-     */
-    @Query("DELETE FROM ${CHAT_ROOMS} WHERE roomId = :roomId")
-    suspend fun deleteChatRoom(roomId: String)
-
-    /**
      * Method to delete a room messages from the local database.
      */
     @Query("DELETE FROM ${MESSAGES} WHERE roomId = :roomId AND senderId = :senderId")
@@ -272,4 +266,10 @@ interface MessageDao {
             update(messageToUpdate)
         }
     }
+
+    /**
+     * Check the chat room is exists in the database by a given chat room ID.
+     */
+    @Query("SELECT COUNT(*) FROM ${CHAT_ROOMS} WHERE roomId = :roomId AND isDeletedLocally = 0")
+    suspend fun getChatRoomCountById(roomId: String): Int
 }

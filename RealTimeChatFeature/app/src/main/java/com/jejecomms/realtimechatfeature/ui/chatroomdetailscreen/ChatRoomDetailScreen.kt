@@ -60,6 +60,8 @@ import com.jejecomms.realtimechatfeature.ui.theme.LightGrey240
 import com.jejecomms.realtimechatfeature.ui.theme.White
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_ROLE_ADMIN
 import com.jejecomms.realtimechatfeature.utils.ToastUtils
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import me.onebone.toolbar.CollapsingToolbarScaffold
 import me.onebone.toolbar.CollapsingToolbarState
 import me.onebone.toolbar.ScrollStrategy
@@ -77,6 +79,7 @@ fun ChatRoomDetailScreen(
     onBack: (message: String?) -> Unit,
     currentSenderId: String,
     onRemoveMember: (ChatRoomMemberEntity) -> Unit,
+    onAddMembersClick: () -> Unit,
     chatRoomDetailViewModel: ChatRoomDetailViewModel = viewModel()
 ) {
     /**
@@ -85,6 +88,7 @@ fun ChatRoomDetailScreen(
     BackHandler { onBack(null) }
 
     /**
+     *
      * Initialize the CollapsingToolbarScaffold state.
      */
     val state = rememberCollapsingToolbarScaffoldState()
@@ -128,11 +132,6 @@ fun ChatRoomDetailScreen(
     val memberToManage = remember { mutableStateOf<ChatRoomMemberEntity?>(null) }
 
     /**
-     * Transfer ownership message state.
-     */
-    val transferMessage = chatRoomDetailViewModel.transferOwnershipMessage.collectAsState()
-
-    /**
      * Show leave dialog state.
      */
     val showLeaveDialog = chatRoomDetailViewModel.showLeaveDialog.collectAsState()
@@ -143,13 +142,24 @@ fun ChatRoomDetailScreen(
     val context = LocalContext.current
 
     // LaunchedEffect to show Toast message for ownership transfer
-    LaunchedEffect(transferMessage) {
-        if (transferMessage.value != null) {
-            transferMessage.let { message ->
-                ToastUtils.showLongToast(context, message.toString())
-                chatRoomDetailViewModel.clearTransferOwnershipMessage()
+    LaunchedEffect(chatRoomDetailViewModel) {
+        chatRoomDetailViewModel.transferOwnershipMessage.onEach { message ->
+            message?.let {
+                if (it.isNotEmpty()) {
+                    ToastUtils.showLongToast(context, message.toString())
+                    chatRoomDetailViewModel.clearTransferOwnershipMessage()
+                }
             }
-        }
+        }.launchIn(this)
+    }
+
+    // This LaunchedEffect will handle navigation for the "leave room" action for last member.
+    LaunchedEffect(chatRoomDetailViewModel) {
+        chatRoomDetailViewModel.navigateToChatRooms.onEach { navigate ->
+            if (navigate) {
+                onBack(null)
+            }
+        }.launchIn(this)
     }
 
     CollapsingToolbarScaffold(
@@ -231,7 +241,8 @@ fun ChatRoomDetailScreen(
 
             item {
                 Text(
-                    text = "Members (${members.size})",
+                    fontSize = 16.sp,
+                    text = stringResource(R.string.members)+"(${members.size})",
                     style = MaterialTheme.typography.titleMedium,
                     color = Black,
                     modifier = Modifier
@@ -257,7 +268,7 @@ fun ChatRoomDetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
-                            .clickable(onClick = { /* Handle add member click */ })
+                            .clickable(onClick = { onAddMembersClick() })
                             .padding(start = 24.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -310,7 +321,8 @@ fun ChatRoomDetailScreen(
                 Row(
                     modifier = Modifier
                         .padding(start = 25.dp)
-                        .clickable(onClick = { chatRoomDetailViewModel.onLeaveRoomClicked()
+                        .clickable(onClick = {
+                            chatRoomDetailViewModel.onLeaveRoomClicked()
                         }),
                     verticalAlignment = Alignment.CenterVertically
                 ) {

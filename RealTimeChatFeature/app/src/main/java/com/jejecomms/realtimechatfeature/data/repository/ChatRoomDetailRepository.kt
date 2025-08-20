@@ -3,10 +3,12 @@ package com.jejecomms.realtimechatfeature.data.repository
 import com.google.firebase.firestore.FirebaseFirestore
 import com.jejecomms.realtimechatfeature.data.local.dao.ChatRoomDetailDao
 import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomMemberEntity
+import com.jejecomms.realtimechatfeature.data.local.entity.UsersEntity
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOMS
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_ROLE_ADMIN
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_ROLE_MEMBER
+import com.jejecomms.realtimechatfeature.utils.DateUtils.getTimestamp
 import com.jejecomms.realtimechatfeature.utils.NetworkMonitor.isOnline
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +43,7 @@ class ChatRoomDetailRepository(
                 if (isOnline) {
                     syncPendingRemovals()
                     syncPendingRoleChanges()
+                    syncPendingMembers()
                 }
             }
         }
@@ -50,7 +53,7 @@ class ChatRoomDetailRepository(
      * Retrieves members by their roomId from the local database.
      */
     fun getMembers(roomId: String): Flow<List<ChatRoomMemberEntity>> {
-        return chatRoomDetailDao.getMembers(roomId)
+        return chatRoomDetailDao.getMembersNotRemoveFromChat(roomId)
     }
 
     /**
@@ -129,7 +132,7 @@ class ChatRoomDetailRepository(
         newOwner: ChatRoomMemberEntity
     ) {
         // Mark new owner as pending admin
-        chatRoomDetailDao.updateMemberRoleAndTransferRole(
+        chatRoomDetailDao.updateMemberRoleAndTransferRole(roomId,
             newOwner.userId,
             CHAT_ROOM_ROLE_ADMIN,
             CHAT_ROOM_ROLE_ADMIN
@@ -158,21 +161,21 @@ class ChatRoomDetailRepository(
 
                 // On successful Firebase update, clear the transferRole flag in local DB
                 withContext(Dispatchers.IO) {
-                    chatRoomDetailDao.updateMemberRoleAndTransferRole(userId, targetRole, "")
+                    chatRoomDetailDao.updateMemberRoleAndTransferRole(roomId,userId, targetRole,
+                        "")
                 }
             } else {
                 // If offline, transferRole remains set and syncPendingRoleChanges will pick it up
                 withContext(Dispatchers.IO) {
-                    chatRoomDetailDao.updateMemberRoleAndTransferRole(
-                        userId, targetRole,
-                        targetRole
-                    )
+                    chatRoomDetailDao.updateMemberRoleAndTransferRole(roomId, userId, targetRole,
+                        targetRole)
                 }
             }
         } catch (_: Exception) {
             // On Firebase failure, ensure transferRole remains set for retry.
             withContext(Dispatchers.IO) {
-                chatRoomDetailDao.updateMemberRoleAndTransferRole(userId, targetRole, targetRole)
+                chatRoomDetailDao.updateMemberRoleAndTransferRole(roomId, userId, targetRole,
+                       targetRole)
             }
         }
     }
@@ -246,8 +249,7 @@ class ChatRoomDetailRepository(
                         chatRoomDetailDao.insertMember(member)
                     }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (_: Exception) {
             }
         }
     }
@@ -262,14 +264,15 @@ class ChatRoomDetailRepository(
                           ,members: List<ChatRoomMemberEntity>) {
         val isCurrentUserAdmin = currentMember.role == CHAT_ROOM_ROLE_ADMIN
 
-        // **1. Local database updates (first)**
+        //Local database updates (first)**
         if (isCurrentUserAdmin) {
             // Find the previous owner (if any) and transfer ownership
             val nonAdminMembers = members.filter { it.userId != currentMember.userId }
             if (nonAdminMembers.isNotEmpty()) {
-                val newOwner = nonAdminMembers.first() // Select the first non-admin member as the new admin
+                val newOwner = nonAdminMembers.first() // Select the first non-admin
+                // member as the new admin
                 withContext(Dispatchers.IO) {
-                    chatRoomDetailDao.updateMemberRoleAndTransferRole(
+                    chatRoomDetailDao.updateMemberRoleAndTransferRole(newOwner.roomId,
                         newOwner.userId,
                         CHAT_ROOM_ROLE_ADMIN,
                         CHAT_ROOM_ROLE_ADMIN
@@ -334,5 +337,94 @@ class ChatRoomDetailRepository(
      */
     fun cleanup() {
         firestoreListenerJob?.cancel()
+    }
+
+    /**
+     * Adds new members to a chat room in Firebase and locally,
+     * returning true if the operation succeeds locally, even if offline.
+     */
+    suspend fun addMembers(roomId: String, newUsers: List<UsersEntity>): Boolean {
+        return withContext(Dispatchers.IO) {
+            //Convert UsersEntity to ChatRoomMemberEntity
+            val newMembers = newUsers.map { user ->
+                ChatRoomMemberEntity(
+                    userId = user.uid,
+                    userName = user.username,
+                    roomId = roomId,
+                    joinedAt = getTimestamp(),
+                    role = CHAT_ROOM_ROLE_MEMBER
+                )
+            }
+
+            //Add members to the local database immediately
+            chatRoomDetailDao.insertMembers(newMembers)
+
+            //Sync to Firebase
+            try {
+                if (isOnline().first()) {
+                    val batch = firebasFireStore.batch()
+                    val roomRef = firebasFireStore
+                        .collection(CHAT_ROOMS)
+                        .document(roomId)
+
+                    newMembers.forEach { member ->
+                        val memberRef = roomRef.collection(CHAT_ROOM_MEMBERS)
+                            .document(member.userId)
+                        batch.set(memberRef, member)
+                    }
+                    batch.commit().await()
+                    // Return true on successful online commit.
+                    true
+                } else {
+                    // If offline, mark as pending to be synced later
+                    newMembers.forEach { member ->
+                        chatRoomDetailDao.updateMemberPendingStatus(roomId, member.userId, true)
+                    }
+                    // Return true because the local update was successful.
+                    true
+                }
+            } catch (_: Exception) {
+                // In case of an error, ensure the local state is marked for later sync
+                newMembers.forEach { member ->
+                    chatRoomDetailDao.updateMemberPendingStatus(roomId, member.userId, true)
+                }
+                // Return true even on network failure because the local state is handled.
+                true
+            }
+        }
+    }
+
+    /**
+     * Start the real-time sync pending members to Firestore from the local database.
+     */
+    private suspend fun syncPendingMembers() {
+        chatRoomDetailDao.getPendingMembers().collectLatest { pendingMembers ->
+            if (pendingMembers.isNotEmpty()) {
+                // Check if network is still online before proceeding
+                if (isOnline().first()) {
+                    val batch = firebasFireStore.batch()
+                    for (member in pendingMembers) {
+                        val memberRef = firebasFireStore
+                            .collection(CHAT_ROOMS)
+                            .document(member.roomId)
+                            .collection(CHAT_ROOM_MEMBERS)
+                            .document(member.userId)
+                        batch.set(memberRef, member)
+                    }
+                    try {
+                        batch.commit().await()
+                        // On successful commit, clear the pending status in the local DB
+                        withContext(Dispatchers.IO) {
+                            for (member in pendingMembers) {
+                                chatRoomDetailDao.updatePendingMembersStatus(
+                                    member.roomId,
+                                    member.userId, false
+                                )
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        }
     }
 }

@@ -225,60 +225,6 @@ class ChatRoomRepository(
     }
 
     /**
-     * Checks if a system message indicating a user has joined the chat has been sent.
-     *
-     * @param roomId The ID of the chat room.
-     * @param userId The ID of the user who joined.
-     */
-    suspend fun hasJoinTheGroup(roomId: String, userId: String): Boolean {
-        return try {
-            val messagesCollection = firebasFireStore.collection(CHAT_ROOMS)
-                .document(roomId)
-                .collection(CHAT_ROOM_MEMBERS)
-            val querySnapshot = messagesCollection
-                .whereEqualTo("groupMember", true)
-                .whereEqualTo("senderId", userId)
-                .limit(1) // Only need to find one to know it exists
-                .get()
-                .await()
-            !querySnapshot.isEmpty
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
-        }
-    }
-
-    /**
-     * Adds a user to the room and updates both the Firestore and local database.
-     *
-     * @param roomId The ID of the chat room.
-     * @param member The GroupMembersEntity representing the user.
-     */
-    fun joinRoom(roomId: String, member: ChatRoomMemberEntity) {
-        applicationScope.launch {
-            try {
-                // Update local database immediately to show pending status
-                messageDao.insertGroupMember(member)
-
-                // Send the member data to Firestore
-                val memberRef = firebasFireStore.collection(CHAT_ROOMS)
-                    .document(roomId)
-                    .collection(CHAT_ROOM_MEMBERS)
-                    .document(member.id)
-
-                memberRef.set(member.copy(role = CHAT_ROOM_ROLE_MEMBER)).await()
-
-                // If successful, update local database to reflect the success
-                messageDao.updateGroupMember(member.copy(role = CHAT_ROOM_ROLE_MEMBER))
-            } catch (e: Exception) {
-                // If the network call fails, update the local database with the failed status
-                messageDao.updateGroupMember(member.copy(role = ""))
-                e.printStackTrace()
-            }
-        }
-    }
-
-    /**
      * Retrieves all joined group members from Firestore in real-time.
      * @param roomId The ID of the chat room.
      * @return A Flow of a list of GroupMembersEntity.
@@ -297,30 +243,15 @@ class ChatRoomRepository(
     }
 
     /**
-     * Checks if a chat room with the given roomId exists in Firestore.
-     * If the room does not exist, it triggers a local deletion.
+     * Checks if a chat room with the given roomId exists in Local.
      *
      * @param roomId The ID of the room to check.
-     * @return `true` if the room exists in Firestore, `false` otherwise.
+     * @return `true` if the room exists in Local, `false` otherwise.
      */
     suspend fun checkIfRoomIdExists(roomId: String): Boolean {
-        return try {
-            val querySnapshot = firebasFireStore.collection(CHAT_ROOMS)
-                .document(roomId)
-                .get()
-                .await()
-
-            val exists = querySnapshot.exists()
-
-            // If the room does not exist in Firestore, delete it from the local database
-            if (!exists) {
-                withContext(Dispatchers.IO) {
-                    messageDao.deleteChatRoom(roomId)
-                }
-            }
-            exists
-        } catch (_: Exception) {
-            false
+        return withContext(Dispatchers.IO) {
+            // If the count is greater than 0, the room exists locally.
+            messageDao.getChatRoomCountById(roomId) > 0
         }
     }
 

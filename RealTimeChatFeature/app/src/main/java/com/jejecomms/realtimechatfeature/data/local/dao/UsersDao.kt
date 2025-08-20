@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.jejecomms.realtimechatfeature.data.local.entity.UsersEntity
-import com.jejecomms.realtimechatfeature.utils.Constants
+import com.jejecomms.realtimechatfeature.utils.Constants.USERS
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -22,12 +22,12 @@ interface UsersDao {
     /**
      * Retrieves all users from the database in ascending order by timestamp.
      */
-    @Query("SELECT * FROM ${Constants.USERS} WHERE uid != :senderId ORDER BY loginTime ASC")
+    @Query("SELECT * FROM ${USERS} WHERE uid != :senderId ORDER BY loginTime ASC")
     fun getAllUsers(senderId: String): Flow<List<UsersEntity>>
 
     /**
      * Retrieves a specific user name from the database.
      */
-    @Query("SELECT * FROM ${Constants.USERS} WHERE uid = :senderId")
+    @Query("SELECT * FROM ${USERS} WHERE uid = :senderId")
     fun getUserName(senderId: String): UsersEntity?
 }

@@ -16,7 +16,6 @@ import com.jejecomms.realtimechatfeature.data.model.MessageType
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomRepository
 import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_EXPORT_CHAT
 import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_MAIN
-import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_ROLE_MEMBER
 import com.jejecomms.realtimechatfeature.utils.Constants.KEY_SENDER_ID
 import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME
 import com.jejecomms.realtimechatfeature.utils.Constants.SENDER_NAME_PREF
@@ -107,23 +106,8 @@ class ChatRoomViewModel(
     val members: StateFlow<List<ChatRoomMemberEntity>> = _members.asStateFlow()
 
     init {
-        //checkIfUserHasJoined()
         updateLastReadTimestamp()
     }
-
-    /**
-     * Checks if the user has joined the room and joins them if not.
-     */
-//    private fun checkIfUserHasJoined() {
-//        viewModelScope.launch {
-//            currentSenderId?.let {
-//                val senderName = SharedPreferencesUtils.getString(SENDER_NAME_PREF) ?: SENDER_NAME
-//                if (!chatRoomRepository.hasJoinTheGroup(roomId, it)) {
-//                    joinMemberToRoom(it, senderName, roomId)
-//                }
-//            }
-//        }
-//    }
 
     /**
      * Update a message's as a read status.
@@ -142,7 +126,8 @@ class ChatRoomViewModel(
         firestoreMessagesListenerJob?.cancel()
         firestoreMessagesListenerJob = viewModelScope.launch {
             try {
-                chatRoomRepository.startFirestoreMessageListener(roomId).collect { remoteMessages ->
+                chatRoomRepository.startFirestoreMessageListener(roomId)
+                    .collect { remoteMessages ->
                     remoteMessages.forEach { remoteMessage ->
                         // Check if the message is from another user and is in the 'SENT' state.
                         if (remoteMessage.senderId != currentSenderId
@@ -271,29 +256,6 @@ class ChatRoomViewModel(
                     _imageUploadProgress.value = progress
                 }
             )
-        }
-    }
-
-    /**
-     * Join a new member to the room.
-     * This method should only be called once per user session.
-     *
-     * @param userName The name of the user who joined.
-     * @param senderId The unique ID of the user who joined.
-     */
-    private fun joinMemberToRoom(senderId: String, userName: String, roomId: String) {
-        val memberId = UuidGenerator.generateUniqueId()
-        val joinData = ChatRoomMemberEntity(
-            id = memberId,
-            userId = senderId,
-            userName = userName,
-            joinedAt = getTimestamp(),
-            roomId = roomId,
-            role = CHAT_ROOM_ROLE_MEMBER
-        )
-
-        viewModelScope.launch {
-            chatRoomRepository.joinRoom(roomId, joinData)
         }
     }
 

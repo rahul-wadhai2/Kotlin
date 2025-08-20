@@ -42,7 +42,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -64,6 +63,7 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.firebase.messaging.ktx)
     implementation(libs.gson)
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.toolbar.compose)
     implementation(libs.androidx.room.runtime)
     testImplementation(libs.junit)

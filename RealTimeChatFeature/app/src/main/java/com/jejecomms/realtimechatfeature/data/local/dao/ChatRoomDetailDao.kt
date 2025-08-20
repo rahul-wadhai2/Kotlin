@@ -18,8 +18,29 @@ interface ChatRoomDetailDao {
      * Retrieves members by their roomId from the database.
      */
     @Query("SELECT * FROM ${CHAT_ROOM_MEMBERS} WHERE roomId = :roomId AND " +
-            "isPendingRemoval = 0 ORDER BY userName ASC")
+            "isPendingRemoval = 0 AND isPendingAddMemberSync = 0 ORDER BY userName ASC")
     fun getMembers(roomId: String): Flow<List<ChatRoomMemberEntity>>
+
+    /**
+     * Retrieves members by their roomId from the database that are not marked for removal.
+     */
+    @Query("SELECT * FROM ${CHAT_ROOM_MEMBERS} WHERE roomId = :roomId AND " +
+            "isPendingRemoval = 0 ORDER BY userName ASC")
+    fun getMembersNotRemoveFromChat(roomId: String): Flow<List<ChatRoomMemberEntity>>
+
+    /**
+     * Retrieves members that are marked for pending members.
+     */
+    @Query("SELECT * FROM ${CHAT_ROOM_MEMBERS} WHERE isPendingAddMemberSync = 1")
+    fun getPendingMembers(): Flow<List<ChatRoomMemberEntity>>
+
+    /**
+     * Updates a member's pending status.
+     */
+    @Query("UPDATE ${CHAT_ROOM_MEMBERS} SET isPendingAddMemberSync = :isPending " +
+            "WHERE userId = :userId AND roomId = :roomId")
+    suspend fun updatePendingMembersStatus(roomId: String, userId: String,
+                                                  isPending: Boolean)
 
     /**
      * Inserts a member into the database.
@@ -56,8 +77,8 @@ interface ChatRoomDetailDao {
      * Updates a member's role and their pending transfer role.
      */
     @Query("UPDATE ${CHAT_ROOM_MEMBERS} SET role = :newRole, transferRole = :newTransferRole " +
-            "WHERE userId = :userId")
-    suspend fun updateMemberRoleAndTransferRole(userId: String, newRole: String,
+            "WHERE userId = :userId AND roomId = :roomId")
+    suspend fun updateMemberRoleAndTransferRole(roomId: String, userId: String, newRole: String,
                                                 newTransferRole: String)
 
     /**
@@ -65,4 +86,18 @@ interface ChatRoomDetailDao {
      */
     @Query("SELECT * FROM ${CHAT_ROOM_MEMBERS} WHERE transferRole != ''")
     fun getMembersWithPendingRoleChanges(): Flow<List<ChatRoomMemberEntity>>
+
+    /**
+     * Updates a member's pending status.
+     */
+    @Query("UPDATE ${CHAT_ROOM_MEMBERS} SET isPendingAddMemberSync = :isPendingAddMemberSync " +
+            "WHERE userId = :userId AND roomId = :roomId")
+    suspend fun updateMemberPendingStatus(roomId: String, userId: String,
+                                          isPendingAddMemberSync: Boolean)
+
+    /**
+     * Inserts a list of members into the database.
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMembers(members: List<ChatRoomMemberEntity>)
 }

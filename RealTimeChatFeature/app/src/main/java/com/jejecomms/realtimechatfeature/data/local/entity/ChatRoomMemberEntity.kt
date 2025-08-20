@@ -29,5 +29,6 @@ data class ChatRoomMemberEntity(
     val transferRole: String = "",
     val isMuted: Boolean = false,
     val joinedAt: Long = 0L,
-    val isPendingRemoval: Boolean = false
+    val isPendingRemoval: Boolean = false,
+    val isPendingAddMemberSync: Boolean = false
 )

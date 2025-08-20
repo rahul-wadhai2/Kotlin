@@ -45,10 +45,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
@@ -63,6 +64,7 @@ import com.jejecomms.realtimechatfeature.data.repository.ChatRoomDetailRepositor
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomRepository
 import com.jejecomms.realtimechatfeature.data.repository.ChatRoomsRepository
 import com.jejecomms.realtimechatfeature.data.repository.LoginRepository
+import com.jejecomms.realtimechatfeature.ui.chatroomAddmembers.AddMembersScreen
 import com.jejecomms.realtimechatfeature.ui.chatroomdetailscreen.ChatRoomDetailScreen
 import com.jejecomms.realtimechatfeature.ui.chatroomdetailscreen.ChatRoomDetailViewModel
 import com.jejecomms.realtimechatfeature.ui.chatroomdetailscreen.ChatRoomDetailViewModelFactory
@@ -151,6 +153,9 @@ class ChatActivity : ComponentActivity() {
         )
     }
 
+    /**
+     * Initialize the ChatRoomDetailViewModel using viewModels delegate.
+     */
     private val loginViewModel: LoginViewModel by viewModels {
         LoginViewModelFactory(loginRepository, NetworkMonitor)
     }
@@ -202,6 +207,9 @@ class ChatActivity : ComponentActivity() {
 
             // State to control ChatRoomDetailScreen visibility
             var showRoomDetailsForSelectedChatRoom by remember { mutableStateOf(false) }
+
+            // State to control AddMembersScreen visibility
+            var showAddMembersScreen by remember { mutableStateOf(false) }
 
             // LaunchedEffect to navigate when the ViewModel provides a deep link room
             LaunchedEffect(deepLinkRoom) {
@@ -298,6 +306,23 @@ class ChatActivity : ComponentActivity() {
                                     )
                                     newId.toString()
                                 }
+
+                            val chatRoomDetailViewModel: ChatRoomDetailViewModel by viewModels {
+                                ChatRoomDetailViewModelFactory(
+                                    loginRepository,
+                                    chatRoomsRepository,
+                                    chatRoomDetailRepository,
+                                    application as ChatApplication
+                                )
+                            }
+
+                            // This LaunchedEffect will be triggered whenever selectedChatRoom changes.
+                            LaunchedEffect(selectedChatRoom) {
+                                selectedChatRoom?.roomId?.let { roomId ->
+                                    chatRoomDetailViewModel.loadChatRoom(roomId)
+                                }
+                            }
+
                             when {
                                 selectedChatRoom == null -> {
                                     ChatRoomsScreen(
@@ -333,11 +358,16 @@ class ChatActivity : ComponentActivity() {
                                             ) {
                                                 Column(
                                                     modifier = Modifier.padding(16.dp),
-                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                    horizontalAlignment = Alignment
+                                                        .CenterHorizontally
                                                 ) {
                                                     Text(
-                                                        text = stringResource(R.string.delete_confirmation),
-                                                        style = MaterialTheme.typography.titleMedium
+                                                        color = Black,
+                                                        fontSize = 14.sp,
+                                                        text = stringResource(R.string
+                                                            .delete_confirmation),
+                                                        style = MaterialTheme.typography
+                                                            .titleMedium
                                                     )
                                                     Spacer(modifier = Modifier.height(16.dp))
                                                     Row(
@@ -349,14 +379,13 @@ class ChatActivity : ComponentActivity() {
                                                                 showDeleteConfirmationDialog = null
                                                             },
                                                             colors = ButtonDefaults
-                                                                .buttonColors(
-                                                                    containerColor =
-                                                                        Color.LightGray
-                                                                )
+                                                                .buttonColors
+                                                                    (containerColor = White)
                                                         ) {
                                                             Text(
                                                                 stringResource(R.string.cancel),
-                                                                color = Color.Black
+                                                                color = LightGreen,
+                                                                fontSize = 14.sp
                                                             )
                                                         }
                                                         Spacer(modifier = Modifier.width(8.dp))
@@ -367,15 +396,18 @@ class ChatActivity : ComponentActivity() {
                                                                         chatRoomsViewModel
                                                                             .onDeleteChatRoom(
                                                                                 chatRoom
-                                                                                    .roomId.toString()
+                                                                            .roomId.toString()
                                                                             )
                                                                     }
                                                                 showDeleteConfirmationDialog = null
                                                             },
                                                             colors = ButtonDefaults
-                                                                .buttonColors(containerColor = LightGreen)
+                                                                .buttonColors
+                                                                    (containerColor = White)
                                                         ) {
-                                                            Text(stringResource(R.string.ok))
+                                                            Text(stringResource(R.string.ok),
+                                                                color = LightGreen,
+                                                                fontSize = 14.sp)
                                                         }
                                                     }
                                                 }
@@ -384,13 +416,34 @@ class ChatActivity : ComponentActivity() {
                                     }
                                 }
 
+                                showAddMembersScreen -> {
+                                    val chatRoomDetailViewModel: ChatRoomDetailViewModel
+                                    by viewModels {
+                                        selectedChatRoom?.roomId.let { roomId ->
+                                            ChatRoomDetailViewModelFactory(
+                                                loginRepository, chatRoomsRepository,
+                                                chatRoomDetailRepository,
+                                                application as ChatApplication
+                                            )
+                                        }
+                                    }
+                                    AddMembersScreen(
+                                        senderId = currentSenderId,
+                                        onBack = { showAddMembersScreen = false },
+                                        chatRoomDetailViewModel = chatRoomDetailViewModel)
+                                }
+
                                 showRoomDetailsForSelectedChatRoom -> {
-                                    val roomId = selectedChatRoom!!.roomId
-                                    val chatRoomDetailViewModel: ChatRoomDetailViewModel =
-                                        viewModel(
-                                            factory = ChatRoomDetailViewModelFactory(
-                                                chatRoomsRepository, chatRoomDetailRepository,
-                                                roomId, application as ChatApplication))
+                                    val chatRoomDetailViewModel: ChatRoomDetailViewModel
+                                            by viewModels {
+                                                selectedChatRoom?.roomId.let { roomId ->
+                                                    ChatRoomDetailViewModelFactory(
+                                                        loginRepository, chatRoomsRepository,
+                                                        chatRoomDetailRepository,
+                                                        application as ChatApplication
+                                                    )
+                                                }
+                                            }
                                     // Retrieve the members from the ViewModel.
                                     val members by chatRoomDetailViewModel.members.collectAsState()
 
@@ -404,7 +457,6 @@ class ChatActivity : ComponentActivity() {
                                         }
                                     } else {
                                         ChatRoomDetailScreen(
-                                            currentSenderId = currentSenderId,
                                             roomName = selectedChatRoom!!.title.toString(),
                                             members = members,
                                             onLeaveRoom = {
@@ -414,8 +466,12 @@ class ChatActivity : ComponentActivity() {
                                             onBack = {
                                                 showRoomDetailsForSelectedChatRoom = false
                                             },
+                                            currentSenderId = currentSenderId,
                                             onRemoveMember = { member ->
                                                 chatRoomDetailViewModel.removeMember(member)
+                                            },
+                                            onAddMembersClick = {
+                                                showAddMembersScreen = true
                                             }
                                         )
                                     }

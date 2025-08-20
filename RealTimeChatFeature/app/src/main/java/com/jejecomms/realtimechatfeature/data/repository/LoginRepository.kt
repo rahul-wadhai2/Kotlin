@@ -57,7 +57,7 @@ class LoginRepository(
      * Fetches all user data from Firestore and returns a list of UsersEntity.
      */
     suspend fun fetchAllUsersFromFirestore(): List<UsersEntity> {
-        val snapshot = firestore.collection("users").get().await()
+        val snapshot = firestore.collection(USERS).get().await()
         return snapshot.documents.map { document ->
             val uid = document.getString("uid") ?: ""
             val name = document.getString("name") ?: ""
