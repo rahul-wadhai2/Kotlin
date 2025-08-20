@@ -467,3 +467,70 @@ The `MessageDao` provides the core database operations for read tracking:
  3. Message Attachments (PDF/Image/Audio)
 
  4. Chat Export & Deletion (Personal Data Control)
+
+## Firestore Collections Structure
+
+The Firestore database is structured to support real-time group chat functionalities efficiently.
+
+* `/users`
+    * `/{userId}`: Stores user profile information (e.g., `uid`, `username`, `email`, `loginTime`).
+
+* `/chatrooms`
+    * `/{roomId}`: Stores details about each chat room.
+        * `id`: Unique ID for the chat room (same as `roomId`).
+        * `roomId`: Unique identifier for the chat room (document ID).
+        * `lastMessage`: Last message sent in the room.
+        * `lastTimestamp`: Timestamp of the last message.
+        * `createdBy`: User ID of the creator.
+        * `createdAt`: Timestamp of room creation.
+        * `title`: Group name.
+        * `type`: "group" or "dm".
+        * `isPendingChatRoom`: Boolean flag for local sync (not typically stored in Firestore, but could be for initial pending state if desired for specific sync logic).
+        * `/messages`
+            * `/{messageId}`: Stores individual messages within the chat room.
+                * `id`: Message ID.
+                * `senderId`: User ID of the sender.
+                * `senderName`: Name of the sender.
+                * `text`: Message content.
+                * `timestamp`: Message timestamp.
+                * `status`: (e.g., `SENT`, `DELIVERED`, `READ`).
+                * `messageType`: (e.g., `TEXT`, `IMAGE`, `DOCUMENT`, `AUDIO`).
+                * `url`: URL for media messages.
+                * `readBy`: Array of user IDs who have read the message.
+                * `deliveredAt`: Timestamp when delivered.
+                * `readAt`: Timestamp when read.
+        * `/members`
+            * `/{memberId}`: Stores details about each member in the chat room. The `memberId` is typically the `userId` for easy lookup.
+                * `id`: Unique ID for the member entity (can be same as `userId`).
+                * `userId`: User ID of the member.
+                * `userName`: Username of the member.
+                * `roomId`: ID of the room.
+                * `role`: (e.g., `admin`, `member`).
+                * `transferRole`: Used for pending role changes (local-only, not typically in Firestore).
+                * `isMuted`: Boolean flag.
+                * `joinedAt`: Timestamp when joined.
+                * `isPendingRemoval`: Boolean flag for local sync (not typically in Firestore).
+                * `isPendingAddMemberSync`: Boolean flag for local sync (not typically in Firestore).
+
+---
+
+## Edge Cases in Group Chat Management
+
+Handling group chat dynamics, especially when members leave or roles change, requires careful consideration to maintain data consistency and a smooth user experience.
+
+### 1. Owner Leaves the Group
+
+When the current group **admin** leaves a group, the ownership must be transferred to another member to prevent the group from becoming unmanageable.
+
+* **Current Implementation:**
+    * If the admin leaves and there are other members, the **first non-admin member** found in the `members` list is automatically promoted to `admin`. This is handled by a Firestore batch operation that updates the new owner's role and deletes the old owner.
+    * If the admin is the **only member** left in the group, the group is deleted from Firestore entirely.
+
+---
+
+### 2. Last Member Leaves the Group
+
+When the last remaining member leaves a group, the group essentially becomes empty and serves no purpose.
+
+* **Current Implementation:**
+    * If a member (admin or regular) leaves and they are the **last member** in the group, the entire chat room document and its subcollections (messages, members) are **deleted from Firestore**. This ensures no orphaned or empty chat rooms persist.
