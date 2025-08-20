@@ -111,9 +111,8 @@ class ChatActivity : ComponentActivity() {
      */
     private val chatRoomRepository by lazy {
         val application = application as ChatApplication
-        val applicationScope = application.applicationScope
         val messageDao = application.messageDao
-        ChatRoomRepository(firestoreDb, messageDao, applicationScope, firebaseStorage)
+        ChatRoomRepository(firestoreDb, messageDao, firebaseStorage)
     }
 
     /**
@@ -131,7 +130,8 @@ class ChatActivity : ComponentActivity() {
     private val chatRoomsRepository by lazy {
         val application = application as ChatApplication
         val messageDao = application.messageDao
-        ChatRoomsRepository(this, firestoreDb, messageDao, loginRepository)
+        ChatRoomsRepository(this, firestoreDb, messageDao, loginRepository,
+            application.applicationScope)
     }
 
     /**

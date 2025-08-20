@@ -158,14 +158,15 @@ class ChatRoomsViewModel(
             // Set loading state to true
             _isLoading.value = true
             try {
-                val isSuccess = chatRoomsRepository.createChatRoom(groupName, selectedUsers
-                    ,currentUserId)
+
+                val isSuccess = chatRoomsRepository.createChatRoom(groupName, selectedUsers,
+                    currentUserId)
                 if (isSuccess) {
                     _groupCreationSuccessful.value = true
                     _createGroupError.value = null
                 } else {
                     _createGroupError.value =
-                        application.getString(R.string.create_group_error_already_exit)
+                        application.getString(R.string.create_room_error)
                     _groupCreationSuccessful.value = false
                 }
             } catch (e: Exception) {

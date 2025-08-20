@@ -37,5 +37,6 @@ data class ChatRoomEntity(
     val isDeletedLocally: Boolean = false,
     val type: String? = null,
     val createdAt: Long = 0L,
-    val title: String? = null
+    val title: String? = null,
+    val isPendingChatRoom: Boolean = false
 )

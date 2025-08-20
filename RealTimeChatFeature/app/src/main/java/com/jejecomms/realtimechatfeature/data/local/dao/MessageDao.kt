@@ -55,7 +55,7 @@ interface MessageDao {
     /**
      * Inserts a member into the database.
      */
-    @Insert(onConflict = OnConflictStrategy.Companion.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     suspend fun insertGroupMember(member: ChatRoomMemberEntity)
 
     /**
@@ -272,4 +272,38 @@ interface MessageDao {
      */
     @Query("SELECT COUNT(*) FROM ${CHAT_ROOMS} WHERE roomId = :roomId AND isDeletedLocally = 0")
     suspend fun getChatRoomCountById(roomId: String): Int
+
+    /**
+     * Updates an existing chat room in the database.
+     * @param chatRoom The ChatRoomEntity to update.
+     */
+    @Update(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun updateChatRoom(chatRoom: ChatRoomEntity)
+
+    /**
+     * Query to find chat rooms that are pending sync to Firestore.
+     */
+    @Query("SELECT * FROM $CHAT_ROOMS WHERE isPendingChatRoom = 1")
+    fun getPendingChatRooms(): Flow<List<ChatRoomEntity>>
+
+    /**
+     * Retrieves members that are marked for pending members.
+     */
+    @Query("SELECT * FROM ${CHAT_ROOM_MEMBERS} WHERE isPendingAddMemberSync = 1 AND " +
+            "isPendingRemoval = 0")
+    fun getPendingMembers(): Flow<List<ChatRoomMemberEntity>>
+
+    /**
+     * Find chat room members that are pending sync for a specific room.
+     */
+    @Query("SELECT * FROM ${CHAT_ROOM_MEMBERS} WHERE roomId = :roomId AND " +
+            "isPendingAddMemberSync = 1 AND isPendingRemoval = 0")
+    fun getPendingChatRoomMembersForRoom(roomId: String): Flow<List<ChatRoomMemberEntity>>
+
+    /**
+     * Retrieves all group members for a specific chat room from the local database.
+     */
+    @Query("SELECT * FROM ${CHAT_ROOM_MEMBERS} WHERE roomId = :roomId AND isPendingRemoval = 0 " +
+            "ORDER BY userName ASC")
+    fun getGroupMembersLocal(roomId: String): Flow<List<ChatRoomMemberEntity>>
 }

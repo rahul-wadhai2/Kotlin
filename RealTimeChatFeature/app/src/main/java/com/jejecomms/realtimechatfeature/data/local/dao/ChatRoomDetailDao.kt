@@ -61,19 +61,6 @@ interface ChatRoomDetailDao {
     fun getPendingRemovals(): Flow<List<ChatRoomMemberEntity>>
 
     /**
-     * Retrieves a single member from the database by their userId.
-     * Returns null if no member is found.
-     */
-    @Query("SELECT * FROM ${CHAT_ROOM_MEMBERS} WHERE userId = :userId")
-    suspend fun getMemberByUserId(userId: String): ChatRoomMemberEntity?
-
-    /**
-     * Updates a single member's role by their userId.
-     */
-    @Query("UPDATE ${CHAT_ROOM_MEMBERS} SET role = :newRole WHERE userId = :userId")
-    suspend fun updateMemberRole(userId: String, newRole: String)
-
-    /**
      * Updates a member's role and their pending transfer role.
      */
     @Query("UPDATE ${CHAT_ROOM_MEMBERS} SET role = :newRole, transferRole = :newTransferRole " +

@@ -7,11 +7,10 @@ import androidx.core.net.toUri
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.snapshots
 import com.google.firebase.storage.FirebaseStorage
+import com.jejecomms.realtimechatfeature.data.local.dao.MessageDao
 import com.jejecomms.realtimechatfeature.data.local.entity.ChatMessageEntity
 import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomMemberEntity
-import com.jejecomms.realtimechatfeature.data.local.dao.MessageDao
 import com.jejecomms.realtimechatfeature.data.local.entity.ReadReceiptEntity
 import com.jejecomms.realtimechatfeature.data.model.MessageStatus
 import com.jejecomms.realtimechatfeature.data.model.MessageType
@@ -21,8 +20,6 @@ import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_DOCUMENTS
 import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_IMAGES
 import com.jejecomms.realtimechatfeature.utils.Constants.CACHE_FOLDER_MAIN
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOMS
-import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
-import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_ROLE_MEMBER
 import com.jejecomms.realtimechatfeature.utils.Constants.DOCUMENTS
 import com.jejecomms.realtimechatfeature.utils.Constants.DOCUMENT_EXTENSION
 import com.jejecomms.realtimechatfeature.utils.Constants.IMAGES
@@ -35,7 +32,6 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -50,7 +46,6 @@ import java.io.InputStream
 class ChatRoomRepository(
     private val firebasFireStore: FirebaseFirestore,
     private val messageDao: MessageDao,
-    private val applicationScope: CoroutineScope,
     private val firebaseStorage: FirebaseStorage,
 ) {
 
@@ -225,21 +220,13 @@ class ChatRoomRepository(
     }
 
     /**
-     * Retrieves all joined group members from Firestore in real-time.
+     * Retrieves all group members for a specific chat room from the local database.
+     *
      * @param roomId The ID of the chat room.
-     * @return A Flow of a list of GroupMembersEntity.
+     * @return A Flow of a list of ChatRoomMemberEntity.
      */
-    fun getGroupMembers(roomId: String): Flow<List<ChatRoomMemberEntity>> = flow {
-        val membersCollection = firebasFireStore.collection(CHAT_ROOMS)
-            .document(roomId)
-            .collection(CHAT_ROOM_MEMBERS)
-
-        membersCollection.snapshots().collect { snapshot ->
-            val members = snapshot.documents.mapNotNull {
-                it.toObject(ChatRoomMemberEntity::class.java)
-            }
-            emit(members)
-        }
+    fun getGroupMembers(roomId: String): Flow<List<ChatRoomMemberEntity>> {
+        return messageDao.getGroupMembersLocal(roomId)
     }
 
     /**
@@ -356,10 +343,7 @@ class ChatRoomRepository(
                     }
                     return@withContext cacheFile.absolutePath
                 }
-            } catch (e: Exception) {
-                // Log the exception for debugging
-                e.printStackTrace()
-            }
+            } catch (_: Exception) { }
             null
         }
     }
@@ -440,10 +424,7 @@ class ChatRoomRepository(
                 // Update local database with the new message status and readBy list
                 messageDao.updateMessage(it)
             }
-        } catch (e: Exception) {
-            println("Error marking message as read on Firestore. Saving for retry.")
-            e.printStackTrace()
-
+        } catch (_: Exception) {
             // On failure, insert a new ReadReceiptEntity into the local database
             val failedReceipt = ReadReceiptEntity(
                 messageId = messageId,

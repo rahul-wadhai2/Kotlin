@@ -9,9 +9,9 @@ import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QuerySnapshot
+import com.jejecomms.realtimechatfeature.data.local.dao.MessageDao
 import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomEntity
 import com.jejecomms.realtimechatfeature.data.local.entity.ChatRoomMemberEntity
-import com.jejecomms.realtimechatfeature.data.local.dao.MessageDao
 import com.jejecomms.realtimechatfeature.data.local.entity.UsersEntity
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOMS
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_MEMBERS
@@ -20,13 +20,16 @@ import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_ROLE_MEMBER
 import com.jejecomms.realtimechatfeature.utils.Constants.CHAT_ROOM_TYPE_GROUP
 import com.jejecomms.realtimechatfeature.utils.Constants.MESSAGES
 import com.jejecomms.realtimechatfeature.utils.DateUtils.getTimestamp
+import com.jejecomms.realtimechatfeature.utils.NetworkMonitor
 import com.jejecomms.realtimechatfeature.utils.UuidGenerator
 import com.jejecomms.realtimechatfeature.workers.DeletionSyncWorker
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
@@ -37,8 +40,28 @@ class ChatRoomsRepository(
     private val context: Context,
     private val firebasFireStore: FirebaseFirestore,
     private val messageDao: MessageDao,
-    private val loginRepository: LoginRepository
+    private val loginRepository: LoginRepository,
+    applicationScope: CoroutineScope
 ) {
+
+    init {
+        // Call syncPendingChatRooms and syncPendingMembersToFirestore
+        // when the repository is initialized
+        applicationScope.launch {
+            syncPendingChatRooms()
+            syncPendingMembersToFirestore()
+        }
+        // Start observing network status to trigger sync
+        applicationScope.launch {
+            NetworkMonitor.isOnline().collect { isOnline ->
+                if (isOnline) {
+                    syncPendingChatRooms()
+                    syncPendingMembersToFirestore()
+                }
+            }
+        }
+    }
+
     /**
      * A function to start listening to real-time updates from Firestore for chat rooms
      * and emitting them as a Flow of lists of ChatRoomEntity objects.
@@ -141,23 +164,16 @@ class ChatRoomsRepository(
     }
 
     /**
-     * Creates a new chat room and adds the creating user as a member.
-     * It first checks if a group with the same name already exists.
+     * Creates a new chat room. It first creates the chat room locally with a pending flag
+     * and then attempts to sync it with Firestore, including initial members.
      *
-     * @param groupName The name of the new chat room.
-     * @param selectedUsers The list of users to add to the chat room.
-     * @param currentUserId The ID of the user creating the room.
-     * @return `true` if the chat room was created successfully, `false` otherwise.
+     * @param groupName The name of the chat group.
+     * @param selectedUsers A list of UsersEntity selected to be members.
+     * @param currentUserId The ID of the current user creating the group.
      */
-    suspend fun createChatRoom(
-        groupName: String,
-        selectedUsers: List<UsersEntity>,
-        currentUserId: String,
-    ): Boolean {
-        if (checkIfGroupNameExists(groupName)) {
-            return false
-        }
-
+    suspend fun createChatRoom(groupName: String, selectedUsers: List<UsersEntity>,
+        currentUserId: String): Boolean
+    {
         val chatRoomId = UuidGenerator.generateUniqueId()
 
         val newChatRoom = ChatRoomEntity(
@@ -166,83 +182,148 @@ class ChatRoomsRepository(
             createdBy = currentUserId,
             createdAt = getTimestamp(),
             title = groupName,
-            type = CHAT_ROOM_TYPE_GROUP
+            type = CHAT_ROOM_TYPE_GROUP,
+            isPendingChatRoom = true
         )
 
-        var isChatRoomCreatedInFirestore = false
+        withContext(Dispatchers.IO) {
+            messageDao.insertChatRoom(newChatRoom)
+        }
 
-        return try {
-            //Create the new chat room document in Firestore
-            firebasFireStore.collection(CHAT_ROOMS)
-                .document(chatRoomId)
-                .set(newChatRoom)
-                .await()
+        val userName = loginRepository.getUserName(currentUserId)
 
-            isChatRoomCreatedInFirestore = true
-            val userName = loginRepository.getUserName(currentUserId)
+        // Combine the selected users and the current user (creator) into one list of members
+        val initialMembers = selectedUsers.map { user ->
+            ChatRoomMemberEntity(
+                userId = user.uid,
+                userName = user.username,
+                roomId = chatRoomId,
+                role = CHAT_ROOM_ROLE_MEMBER,
+                joinedAt = getTimestamp()
+            )
+        }.toMutableList()
 
-            // Combine the selected users and the current user (creator) into one list of members
-            val allMembers = userName?.let {
-                selectedUsers.map { user ->
-                    ChatRoomMemberEntity(
-                        userId = user.uid,
-                        userName = user.username,
-                        roomId = chatRoomId,
-                        role = CHAT_ROOM_ROLE_MEMBER,
-                        joinedAt = getTimestamp()
-                    )
-                } + listOf(
-                    ChatRoomMemberEntity(
-                        userId = currentUserId,
-                        userName = it.username,
-                        roomId = chatRoomId,
-                        role = CHAT_ROOM_ROLE_ADMIN,
-                        joinedAt = getTimestamp()
-                    )
+        userName?.let {
+            initialMembers.add(
+                ChatRoomMemberEntity(
+                    userId = currentUserId,
+                    userName = it.username,
+                    roomId = chatRoomId,
+                    role = CHAT_ROOM_ROLE_ADMIN,
+                    joinedAt = getTimestamp()
                 )
-            }
+            )
+        }
 
-            val batch = firebasFireStore.batch()
-            allMembers?.forEach { member ->
-                val docRef = firebasFireStore.collection(CHAT_ROOMS)
-                    .document(chatRoomId)
-                    .collection(CHAT_ROOM_MEMBERS)
-                    .document(member.userId)
-                batch.set(docRef, member)
-            }
-            batch.commit().await()
-
+        // Insert initial members locally with isPendingAddMemberSync = true
+        initialMembers.forEach { member ->
             withContext(Dispatchers.IO) {
-                messageDao.insertChatRoom(newChatRoom)
-                allMembers?.let { messageDao.insertGroupMembers(it) }
+                messageDao.insertGroupMember(member.copy(isPendingAddMemberSync = true))
+            }
+        }
+
+        // Attempt to sync with Firestore (pass the full member entities)
+       return syncChatRoomToFirestore(newChatRoom, initialMembers)
+    }
+
+    /**
+     * Synchronizes a pending chat room to Firestore.
+     *
+     * @param chatRoom The ChatRoomEntity to sync.
+     * @param initialMembers A list of ChatRoomMemberEntity to be added to the chat room on Firestore.
+     * These are the members associated with this room when it's first created.
+     */
+    private suspend fun syncChatRoomToFirestore(chatRoom: ChatRoomEntity,
+                                   initialMembers: List<ChatRoomMemberEntity>): Boolean
+    {
+        val isOnline = NetworkMonitor.isOnline().first()
+        if (isOnline) {
+            try {
+                // Set the chat room data in Firestore
+                firebasFireStore.collection(CHAT_ROOMS).document(chatRoom.roomId.toString())
+                    .set(chatRoom.copy(isPendingChatRoom = false)).await()
+
+                // Add members to the chat room in Firestore using a batch write
+                val batch = firebasFireStore.batch()
+                val membersCollectionRef = firebasFireStore.collection(CHAT_ROOMS)
+                    .document(chatRoom.roomId.toString()).collection(CHAT_ROOM_MEMBERS)
+
+                initialMembers.forEach { member ->
+                    // Set the full ChatRoomMemberEntity
+                    // (without the isPendingAddMemberSync flag for Firestore)
+                    // Firestore does not need the local sync flag.
+                    batch.set(membersCollectionRef.document(member.userId),
+                        member.copy(isPendingAddMemberSync = false))
+                }
+                batch.commit().await()
+
+                // If successful, update the local chat room to mark it as synced
+                messageDao.updateChatRoom(chatRoom.copy(isPendingChatRoom = false))
+
+                // Also update the local members to mark them as synced
+                initialMembers.forEach { member ->
+                    messageDao.updateGroupMember(member.copy(isPendingAddMemberSync = false))
+                }
+               true
+            } catch (_: Exception) {
+                // Keep isPendingChatRoom as true for retry
+                messageDao.updateChatRoom(chatRoom.copy(isPendingChatRoom = true))
+                true
             }
             true
-        } catch (e: Exception) {
-            e.printStackTrace()
-            if (isChatRoomCreatedInFirestore) {
-                try {
-                    deleteRoomFromFirestore(chatRoomId)
-                } catch (_: Exception) { }
+        } else {
+            true
+            //Offline. Chat room ${chatRoom.roomId} will be synced later.
+        }
+        return true
+    }
+
+    /**
+     * Syncs all pending chat rooms from the local database to Firestore.
+     * This method should be called on initialization and when network connectivity changes.
+     */
+    suspend fun syncPendingChatRooms() {
+        withContext(Dispatchers.IO) {
+            messageDao.getPendingChatRooms().first().forEach { pendingChatRoom ->
+                // Fetch pending members specifically for this room
+                val pendingMembersForRoom = messageDao
+                    .getPendingChatRoomMembersForRoom(pendingChatRoom.roomId.toString()).first()
+                syncChatRoomToFirestore(pendingChatRoom, pendingMembersForRoom)
             }
-            false
         }
     }
 
     /**
-     * Checks if a chat room with the given group name already exists.
-     *
-     * @param groupName The name of the group to check.
-     * @return `true` if a room with the same name exists, `false` otherwise.
+     * Synchronizes all pending chat room members from the local database to Firestore.
+     * This method should be called on initialization and when network connectivity changes.
      */
-    suspend fun checkIfGroupNameExists(groupName: String): Boolean {
-        return try {
-            val querySnapshot = firebasFireStore.collection(CHAT_ROOMS)
-                .whereEqualTo("groupName", groupName)
-                .get()
-                .await()
-            !querySnapshot.isEmpty
-        } catch (_: Exception) {
-            false
+    suspend fun syncPendingMembersToFirestore() {
+        withContext(Dispatchers.IO) {
+            val isOnline = NetworkMonitor.isOnline().first()
+            if (isOnline) {
+                messageDao.getPendingMembers().first().forEach { pendingMember ->
+                    try {
+                        val memberRef = firebasFireStore.collection(CHAT_ROOMS)
+                            .document(pendingMember.roomId)
+                            .collection(CHAT_ROOM_MEMBERS)
+                            .document(pendingMember.userId)
+
+                        // Set the member data in Firestore
+                        memberRef.set(pendingMember.copy(isPendingAddMemberSync = false)).await()
+
+                        // If successful, update the local member to mark it as synced
+                        messageDao.updateGroupMember(pendingMember
+                            .copy(isPendingAddMemberSync = false))
+                    } catch (_: Exception) {
+                        messageDao.updateGroupMember(pendingMember
+                                .copy(isPendingAddMemberSync = true)
+                        )
+                        // Keep isPendingAddMemberSync as true for retry
+                    }
+                }
+            } else {
+                //Offline. Pending chat room members will be synced later.
+            }
         }
     }
 
@@ -254,18 +335,6 @@ class ChatRoomsRepository(
         return withContext(Dispatchers.IO) {
             messageDao.getLocallyDeletedChatRooms().first()
         }
-    }
-
-    /**
-     * Deletes a chat room from Firestore.
-     */
-    suspend fun deleteRoomFromFirestore(roomId: String) {
-        try {
-            firebasFireStore.collection(CHAT_ROOMS)
-                .document(roomId)
-                .delete()
-                .await()
-        } catch (_: Exception) { }
     }
 
     /**
@@ -314,7 +383,8 @@ class ChatRoomsRepository(
 
             // Commit the batch to perform all deletions
             batch.commit().await()
-        } catch (_: Exception) { }
+        } catch (_: Exception) {
+        }
     }
 
     /**

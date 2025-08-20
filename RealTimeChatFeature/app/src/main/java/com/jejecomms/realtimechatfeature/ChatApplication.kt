@@ -78,14 +78,14 @@ class ChatApplication : Application() {
      * Expose the ChatRoomsRepository instance.
      */
     val chatRoomsRepository by lazy {
-        ChatRoomsRepository(this, firebasFireStore, messageDao, loginRepository)
+        ChatRoomsRepository(this, firebasFireStore, messageDao, loginRepository, applicationScope)
     }
 
     /**
      * Expose the ChatRoomRepository instance.
      */
     val chatRoomRepository by lazy {
-        ChatRoomRepository(firebasFireStore, messageDao, applicationScope, firebaseStorage)
+        ChatRoomRepository(firebasFireStore, messageDao, firebaseStorage)
     }
 
     override fun onCreate() {
