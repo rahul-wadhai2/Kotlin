@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">Githubrepository</string>
+    <string name="not_added_to_favorites">You haven\'t added any repositories to your favorites yet.</string>
+    <string name="description">Description</string>
+    <string name="language">Language</string>
+    <string name="stars">Stars</string>
+    <string name="forks">Forks</string>
+    <string name="repository_search">Repository Search</string>
+    <string name="unknown_error_occurred">An unknown error occurred.</string>
+    <string name="no_results_found">No results found for</string>
+    <string name="search_gitHub_repositories">Start typing a keyword to search GitHub repositories.</string>
+    <string name="owner">Owner</string>
+</resources>
