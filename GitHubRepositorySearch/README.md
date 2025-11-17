@@ -179,10 +179,36 @@ Completely decoupled and testable.
 
 ---
 
-## 📘 How to Run  
-1. Clone repo  
-2. Open in Android Studio  
-3. Build & Run  
+## 📘 Setup Instructions
+
+### Prerequisites
+
+  * **Android Studio Dolphin (2021.3.1)** or later.
+  * **Kotlin 1.7.0** or later.
+  * Minimum SDK: 24, Target SDK: 35.
+
+### How to Run the App
+
+1.  **Clone the Repository:**
+    ```bash
+    git clone [repo-link]
+    ```
+2.  **Open in Android Studio:** Open the cloned directory as an existing Android Studio project.
+3.  **Build & Run:** Select a device/emulator and click the 'Run' button (the green triangle) in the toolbar.
+
+### Testing Environment
+
+The application was primarily tested on the following setup:
+
+  * **Device/Emulator:** Pixel 5 (API 33)
+  * **OS Version:** Android 13.0
+
+-----
+
+## ⚠️ Known Issues and Limitations
+
+  * **Local Storage:** The local favorites feature currently uses a simple mechanism (in-memory or SharedPreferences for simplicity). For a production app, this should be upgraded to **Room Persistence Library** for robust database management.
+  * **Pagination:** The current search implementation fetches the first page of results. It does not yet support loading subsequent pages (pagination) for large search queries.
 
 ---
 
