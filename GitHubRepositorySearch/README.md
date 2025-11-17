@@ -209,8 +209,3 @@ The application was primarily tested on the following setup:
 
   * **Local Storage:** The local favorites feature currently uses a simple mechanism (in-memory or SharedPreferences for simplicity). For a production app, this should be upgraded to **Room Persistence Library** for robust database management.
   * **Pagination:** The current search implementation fetches the first page of results. It does not yet support loading subsequent pages (pagination) for large search queries.
-
----
-
-## 📄 License  
-MIT License.
